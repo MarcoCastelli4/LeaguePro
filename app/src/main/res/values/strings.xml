@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">LeaguePro</string>
+
+    <string-array name="user_types">
+        <item>Team Manager</item>
+        <item>League Manager</item>
+    </string-array>
+</resources>
+
