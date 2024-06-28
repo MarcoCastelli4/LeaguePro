@@ -11,6 +11,9 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.jakewharton.threetenabp.AndroidThreeTen
 
 class Login : AppCompatActivity() {
     private lateinit var edtEmail: EditText
@@ -19,10 +22,12 @@ class Login : AppCompatActivity() {
     private lateinit var btnSignUp: TextView
     private lateinit var mAuth: FirebaseAuth
     private lateinit var edtPswButton: ImageView
+    private lateinit var mDbRef: DatabaseReference
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AndroidThreeTen.init(this)
         setContentView(R.layout.activity_login)
 
         edtEmail = findViewById(R.id.edt_email)
@@ -71,6 +76,8 @@ class Login : AppCompatActivity() {
         mAuth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
+                    addLeagueToDatabase("Saviore League","Via 2 giugno","4","qwertyu","1000€","10000€","nada", LocalDate.now(),null,
+                        null,"7F2HZcuBUNNu7XGfOVRnt7oyw193")
                     val intent = Intent(this@Login, MainActivity::class.java)
                     startActivity(intent)
                 } else {
@@ -78,4 +85,13 @@ class Login : AppCompatActivity() {
                 }
             }
     }
+
+
+    private fun addLeagueToDatabase(name: String?, place: String?, level: String?, description: String?, entry: String?, prize: String?, restrictions: String?, startDate: LocalDate?, endDate: LocalDate?, lastDate: LocalDate?, leagueManager: String?) {
+        // recupero il riferimento del db
+        mDbRef = FirebaseDatabase.getInstance().getReference()
+        // tramite il riferiemnto aggiungo un elemento
+        mDbRef.child("leagues").push().setValue(League(name, place, level,description,entry,prize,restrictions,startDate, endDate,lastDate,leagueManager))
+    }
+
 }

@@ -10,14 +10,13 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Spinner
-import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 
 class SignUp : AppCompatActivity() {
 
-    private lateinit var edtName: EditText
+    private lateinit var edtFullname: EditText
     private lateinit var edtEmail: EditText
     private lateinit var edtPassword: EditText
     private lateinit var edtConfirmPws: EditText
@@ -33,7 +32,7 @@ class SignUp : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sign_up)
 
-        edtName = findViewById(R.id.edt_fullname)
+        edtFullname = findViewById(R.id.edt_fullname)
         edtEmail = findViewById(R.id.edt_email)
         edtPassword = findViewById(R.id.edt_psw)
         edtConfirmPws = findViewById(R.id.edt_confirmpsw)
@@ -60,13 +59,13 @@ class SignUp : AppCompatActivity() {
         setupPasswordToggle(edtConfirmPws, edtConfirmPswButton)
 
             btnSignUp.setOnClickListener {
-                val name = edtName.text.toString()
+                val fullName = edtFullname.text.toString()
                 val email = edtEmail.text.toString()
                 val password = edtPassword.text.toString()
                 val confirmPassword = edtConfirmPws.text.toString()
                 val userType = edtUserType.selectedItem.toString()
 
-                signup(userType, name, email, password, confirmPassword)
+                signup(userType, fullName, email, password, confirmPassword)
             }
     }
 
@@ -91,9 +90,9 @@ class SignUp : AppCompatActivity() {
         }
     }
 
-    private fun signup(userType: String, name: String, email: String, password: String, confirmPassword: String) {
+    private fun signup(userType: String, fullName: String, email: String, password: String, confirmPassword: String) {
         // Reset errors
-        edtName.error = null
+        edtFullname.error = null
         edtEmail.error = null
         edtPassword.error = null
         edtConfirmPws.error = null
@@ -102,8 +101,8 @@ class SignUp : AppCompatActivity() {
         // Validate inputs
         var valid = true
 
-        if (name.isEmpty()) {
-            edtName.error = "Please enter your full name"
+        if (fullName.isEmpty()) {
+            edtFullname.error = "Please enter your full name"
             valid = false
         }
 
@@ -136,7 +135,7 @@ class SignUp : AppCompatActivity() {
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
                     // Save user to the database
-                    addUserToDatabase(userType, name, email, mAuth.currentUser?.uid!!)
+                    addUserToDatabase(userType, fullName, email, mAuth.currentUser?.uid!!)
 
                     val intent = Intent(this@SignUp, MainActivity::class.java)
                     startActivity(intent)
@@ -150,11 +149,11 @@ class SignUp : AppCompatActivity() {
 
 
 
-    private fun addUserToDatabase(usertType: String, name: String, email: String, uid: String) {
+    private fun addUserToDatabase(usertType: String, fullName: String, email: String, uid: String) {
         // recupero il riferimento del db
         mDbRef = FirebaseDatabase.getInstance().getReference()
         // tramite il riferiemnto aggiungo un elemento
-        mDbRef.child("users").child(uid).setValue(User(usertType,name, email, uid))
+        mDbRef.child("users").child(uid).setValue(User(usertType,fullName, email, uid))
     }
 
 }
