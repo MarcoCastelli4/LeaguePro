@@ -1,10 +1,12 @@
 package com.example.leaguepro
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
@@ -74,16 +76,6 @@ class AllLeagueFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         leagueList= ArrayList()
-
-        /*
-        leagueList.add(League("prova","prova","prova","prova",
-            "prova","prova","prova",null,null,null,"qwerty"))
-        leagueList.add(League("prova2","prova","prova","prova",
-            "prova","prova","prova",null,null,null,"qwerty"))
-        leagueList.add(League("prova3","prova","prova","prova",
-            "prova","prova","prova",null,null,null,"qwerty"))
-        */
-
         leagueRecyclerView = view.findViewById(R.id.leagueRecyclerView)
         leagueRecyclerView.layoutManager = LinearLayoutManager(context)
         leagueRecyclerView.hasFixedSize()
@@ -95,36 +87,21 @@ class AllLeagueFragment : Fragment() {
         // creo collegamento con il database
         mDbRef = FirebaseDatabase.getInstance().getReference()
 
-        // Aggiungi un listener per leggere i dati
-        mDbRef.child("leagues").addValueEventListener(object : ValueEventListener {
+        mDbRef.child("leagues").addValueEventListener(object: ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                // Svuota la lista attuale dei tornei
                 leagueList.clear()
-
-                // Itera su tutti i figli della snapshot
-                for (leagueSnapshot in snapshot.children) {
-                    // Ottieni l'oggetto League
-                    val league = leagueSnapshot.getValue(League::class.java)
-                    // Aggiungi il torneo alla lista
-                    if (league != null) {
-                        leagueList.add(league)
-                    }
+                for (postSnapshot in snapshot.children) {
+                    // il problema è qui devo inserire date in formato corretto
+                    val league = postSnapshot.getValue(League::class.java)
+                    leagueList.add(league!!)
+                    Toast.makeText(context, "HERE!!!", Toast.LENGTH_SHORT).show()
                 }
-
-                // Notifica l'adapter che i dati sono cambiati
                 adapter.notifyDataSetChanged()
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Gestisci l'errore se necessario
+                TODO("Not yet implemented")
             }
         })
-
-
-
     }
-
-
-
-
 }
