@@ -149,11 +149,11 @@ class SignUp : AppCompatActivity() {
 
 
 
-    private fun addUserToDatabase(usertType: String, fullName: String, email: String, uid: String) {
+    private fun addUserToDatabase(userType: String, fullName: String, email: String, uid: String) {
         // recupero il riferimento del db
         mDbRef = FirebaseDatabase.getInstance().getReference()
         // tramite il riferiemnto aggiungo un elemento
-        mDbRef.child("users").child(uid).setValue(User(usertType,fullName, email, uid))
+        mDbRef.child("users").child(uid).setValue(User(userType,fullName, email, uid))
     }
 
 }

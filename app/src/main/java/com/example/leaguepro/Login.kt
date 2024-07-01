@@ -14,7 +14,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.jakewharton.threetenabp.AndroidThreeTen
-import java.time.LocalDate
 
 class Login : AppCompatActivity() {
     private lateinit var edtEmail: EditText
@@ -87,7 +86,7 @@ class Login : AppCompatActivity() {
                                     val type = document.child("userType").getValue(String::class.java)
 
                                     // Update userType global
-                                    LeagueType.isLeagueManager = type== "League Manager"
+                                    UserType.isLeagueManager = type== "League Manager"
                                     // Navigate to MainActivity
                                     val intent = Intent(this@Login, MainActivity::class.java)
                                     startActivity(intent)
@@ -108,11 +107,4 @@ class Login : AppCompatActivity() {
 }
 
 
-    /*
-    private fun addLeagueToDatabase(name: String?, place: String?, level: String?, description: String?, entry: String?, prize: String?, restrictions: String?, startDate: LocalDate?, endDate: LocalDate?, lastDate: LocalDate?, leagueManager: String?) {
-        // recupero il riferimento del db
-        mDbRef = FirebaseDatabase.getInstance().getReference()
-        // tramite il riferiemnto aggiungo un elemento
-        mDbRef.child("leagues").push().setValue(League(name, place, level,description,entry,prize,restrictions,startDate, endDate,lastDate,leagueManager))
-    }*/
 

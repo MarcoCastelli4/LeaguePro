@@ -2,6 +2,7 @@ package com.example.leaguepro
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -91,17 +92,29 @@ class AllLeagueFragment : Fragment() {
             override fun onDataChange(snapshot: DataSnapshot) {
                 leagueList.clear()
                 for (postSnapshot in snapshot.children) {
-                    // il problema è qui devo inserire date in formato corretto
+                    val rawData = postSnapshot.value
                     val league = postSnapshot.getValue(League::class.java)
-                    leagueList.add(league!!)
-                    Toast.makeText(context, "HERE!!!", Toast.LENGTH_SHORT).show()
+
+                    // Esempio di conversione manuale per un campo numerico
+                    val leagueLevel = postSnapshot.child("level").getValue(Number::class.java)?.toInt() ?:0
+
+                    // Crea un oggetto League con i dati deserializzati correttamente
+                    val leagueObject = league?.copy(leagueLevel = leagueLevel)
+
+                    if (leagueObject != null) {
+                        leagueList.add(leagueObject)
+                    } else {
+                        Log.d("FirebaseData", "Invalid league data: $rawData") // Log per i dati non validi
+                        Toast.makeText(context, "Invalid league data", Toast.LENGTH_SHORT).show()
+                    }
                 }
                 adapter.notifyDataSetChanged()
             }
 
             override fun onCancelled(error: DatabaseError) {
-                TODO("Not yet implemented")
+                Toast.makeText(context, "Failed to load data: ${error.message}", Toast.LENGTH_SHORT).show()
             }
         })
+
     }
 }

@@ -12,11 +12,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LeaguePro"
         tools:targetApi="31">
-        <activity
-            android:name=".LeagueList"
-            android:exported="false"
-            android:label="@string/title_activity_league_list"
-            android:theme="@style/Theme.LeaguePro" />
+
         <activity
             android:name=".SignUp"
             android:exported="false" />

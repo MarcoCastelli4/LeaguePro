@@ -1,6 +1,6 @@
 package com.example.leaguepro
 
-object LeagueType {
+object UserType {
 
     var isLeagueManager: Boolean = false
 }
