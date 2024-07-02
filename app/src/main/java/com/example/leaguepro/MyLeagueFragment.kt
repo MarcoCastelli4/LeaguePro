@@ -1,6 +1,7 @@
 package com.example.leaguepro
 
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -20,6 +21,13 @@ import com.google.firebase.database.FirebaseDatabase
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.widget.RatingBar
+import android.widget.Toast
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
 
 
 // TODO: Rename parameter arguments, choose names that match
@@ -39,13 +47,16 @@ class MyLeagueFragment : Fragment() {
     private lateinit var mDbRef: DatabaseReference
     private lateinit var edtleague_name: EditText
     private lateinit var edtleague_address:EditText
-    private lateinit var edtleague_level:EditText
+    private lateinit var edtleague_level:RatingBar
     private lateinit var edtleague_description:EditText
     private lateinit var edtleague_entryfee:EditText
     private lateinit var edtleague_prize:EditText
     private lateinit var edtleague_restrictions:EditText
     private lateinit var edtleague_playingPeriod:TextView
     private lateinit var mAuth: FirebaseAuth
+    private lateinit var leagueList: ArrayList<League>
+    private lateinit var adapter: LeagueAdapter
+    private lateinit var leagueRecyclerView: RecyclerView
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,6 +107,52 @@ class MyLeagueFragment : Fragment() {
             addLeagueContainer.visibility = View.GONE
         }
 
+        // Handle the visualization for LeagueManager and for TeamManager
+        if (UserType.isLeagueManager) {
+            leagueList = ArrayList()
+            leagueRecyclerView = view.findViewById(R.id.leagueRecyclerView)
+            leagueRecyclerView.layoutManager = LinearLayoutManager(context)
+            leagueRecyclerView.hasFixedSize()
+
+            adapter = LeagueAdapter(requireContext(), leagueList)
+            leagueRecyclerView.adapter = adapter
+
+            mAuth = FirebaseAuth.getInstance()
+            // creo collegamento con il database
+            mDbRef = FirebaseDatabase.getInstance().getReference()
+
+            mDbRef.child("leagues").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    leagueList.clear()
+                    for (postSnapshot in snapshot.children) {
+                        val league = postSnapshot.getValue(League::class.java)
+                        if (league != null) {
+                            if (league.leagueManager==mAuth.currentUser?.uid!!) {
+                                leagueList.add(league)
+                            } else {
+                                Log.d(
+                                    "FirebaseData",
+                                    "Invalid league data: $league"
+                                ) // Log per i dati non validi
+                            }
+                        }
+                    }
+                    adapter.notifyDataSetChanged()
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Toast.makeText(
+                        context,
+                        "Failed to load data: ${error.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            })
+        }
+
+        // TODO Visualization for Team MANAGER
+
+
         // Find the add_league_icon and set a click listener
         val addLeagueIcon: ImageView = view.findViewById(R.id.add_league_icon)
         addLeagueIcon.setOnClickListener {
@@ -140,13 +197,48 @@ class MyLeagueFragment : Fragment() {
 
                 val leaguename = edtleague_name.text.toString()
                 val leagueaddress = edtleague_address.text.toString()
-                val leaguelevel = edtleague_level.text.toString().toInt()
+                val leaguelevel = edtleague_level.rating
                 val leaguedescription = edtleague_description.text.toString()
                 val leagueentryfee = edtleague_entryfee.text.toString()
                 val leagueprize = edtleague_prize.text.toString()
                 val leaguerestrictions = edtleague_restrictions.text.toString()
                 val leagueplayingPeriod = edtleague_playingPeriod.text.toString()
 
+                var valid=true
+                // Controlla che tutti i campi non siano vuoti
+                if (leaguename.isEmpty()) {
+                    edtleague_name.error = "Please enter League name"
+                    valid = false
+                }
+                if (leagueaddress.isEmpty()) {
+                    edtleague_address.error = "Please enter League address"
+                    valid = false
+                }
+
+                if (leaguedescription.isEmpty()) {
+                    edtleague_description.error = "Please enter League description"
+                    valid = false
+                }
+                if (leagueentryfee.isEmpty()) {
+                    edtleague_entryfee.error = "Please enter League entry free"
+                    valid = false
+                }
+                if (leagueprize.isEmpty()) {
+                    edtleague_prize.error = "Please enter League prize"
+                    valid = false
+                }
+                if (leaguerestrictions.isEmpty()) {
+                    edtleague_restrictions.error = "Please enter League restrictions"
+                    valid = false
+                }
+                if (leagueplayingPeriod.isEmpty()) {
+                    edtleague_playingPeriod.error = "Please enter League playing period"
+                    valid = false
+                }
+
+                if (!valid){
+                    return@setOnClickListener
+                }
                 addLeagueToDatabase(leaguename,leagueaddress,leaguelevel,leaguedescription,leagueentryfee,leagueprize,leaguerestrictions,leagueplayingPeriod,mAuth.currentUser?.uid!!)
                 popupWindow.dismiss()
             }
@@ -184,7 +276,7 @@ class MyLeagueFragment : Fragment() {
         datePicker.show(requireFragmentManager(), "DATE_PICKER")
     }
 
-    private fun addLeagueToDatabase(name: String?, place: String?, level: Number?,description: String?,entry: String?,prize: String?,restrictions: String?,playingPeriod: String?,leagueManager: String?) {
+    private fun addLeagueToDatabase(name: String?, place: String?, level: Float?,description: String?,entry: String?,prize: String?,restrictions: String?,playingPeriod: String?,leagueManager: String?) {
         // recupero il riferimento del db
         mDbRef = FirebaseDatabase.getInstance().getReference()
         // tramite il riferiemnto aggiungo un elemento

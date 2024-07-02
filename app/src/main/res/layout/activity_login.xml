@@ -67,7 +67,7 @@
         android:layout_marginLeft="20dp"
         android:layout_marginRight="20dp"
         android:text="Login"
-        android:background="@drawable/login"
+        android:backgroundTint="@color/primary"
         android:layout_centerHorizontal="true"/>
 
     <LinearLayout

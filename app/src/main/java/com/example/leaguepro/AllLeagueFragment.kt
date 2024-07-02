@@ -92,20 +92,11 @@ class AllLeagueFragment : Fragment() {
             override fun onDataChange(snapshot: DataSnapshot) {
                 leagueList.clear()
                 for (postSnapshot in snapshot.children) {
-                    val rawData = postSnapshot.value
                     val league = postSnapshot.getValue(League::class.java)
-
-                    // Esempio di conversione manuale per un campo numerico
-                    val leagueLevel = postSnapshot.child("level").getValue(Number::class.java)?.toInt() ?:0
-
-                    // Crea un oggetto League con i dati deserializzati correttamente
-                    val leagueObject = league?.copy(leagueLevel = leagueLevel)
-
-                    if (leagueObject != null) {
-                        leagueList.add(leagueObject)
+                    if (league != null) {
+                        leagueList.add(league)
                     } else {
-                        Log.d("FirebaseData", "Invalid league data: $rawData") // Log per i dati non validi
-                        Toast.makeText(context, "Invalid league data", Toast.LENGTH_SHORT).show()
+                        Log.d("FirebaseData", "Invalid league data: $league") // Log per i dati non validi
                     }
                 }
                 adapter.notifyDataSetChanged()

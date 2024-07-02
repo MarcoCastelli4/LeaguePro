@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.RatingBar
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
@@ -14,6 +15,7 @@ class LeagueAdapter(val context: Context, val leagueList: ArrayList<League>): Re
     class LeagueViewHolder(itemView: View): RecyclerView.ViewHolder(itemView) {
         val textName: TextView = itemView.findViewById(R.id.league_name)
         val textPrize: TextView = itemView.findViewById(R.id.league_prize)
+        val floatRating: RatingBar= itemView.findViewById(R.id.league_level)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LeagueViewHolder {
@@ -29,6 +31,7 @@ class LeagueAdapter(val context: Context, val leagueList: ArrayList<League>): Re
         val currentLeague = leagueList[position]
         holder.textName.text = currentLeague.name
         holder.textPrize.text = currentLeague.prize
+        holder.floatRating.rating= currentLeague.level!!
 
     }
 }
