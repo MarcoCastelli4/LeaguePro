@@ -16,13 +16,15 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 
 // LeagueAdapter è collegato al layout league_item
 class LeagueAdapter(
     val context: Context,
     val leagueList: ArrayList<League>,
-    val dbRef: DatabaseReference
+    val dbRef: DatabaseReference,
+    val mAuth: FirebaseAuth
 ) : RecyclerView.Adapter<LeagueAdapter.LeagueViewHolder>() {
 
     class LeagueViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -133,5 +135,43 @@ class LeagueAdapter(
         closeButton.setOnClickListener {
             popupWindow.dismiss()
         }
+
+        play.setOnClickListener{
+            // attualmente creo la tabella con id league e id utente, sarà da mettere al posto di quest'ultimo l'id della squadra
+            mAuth.currentUser?.uid?.let { it1 -> addTeamToALeague(league, it1)
+            popupWindow.dismiss()}
+        }
     }
+
+    private fun addTeamToALeague(league: League, teamUid: String) {
+        val leagueUid: String? =league.uid
+        // Otteniamo un riferimento al nodo leagues_team
+        val leagueTeamRef = dbRef.child("leagues_team")
+
+        // Creiamo un oggetto per il team con l'ID della league e l'ID del team
+        val leagueTeamData = mapOf(
+            "league_id" to leagueUid,
+            "team_id" to teamUid
+        )
+
+        // Usiamo push() per generare una chiave univoca per ogni associazione league-team
+        val leagueTeamKey = leagueTeamRef.push().key
+
+        if (leagueTeamKey != null) {
+            leagueTeamRef.child(leagueTeamKey).setValue(leagueTeamData)
+                .addOnSuccessListener {
+                    // Gestione successo
+                    Toast.makeText(context, "Team joined league successfully!", Toast.LENGTH_SHORT).show()
+                }
+                .addOnFailureListener { e ->
+                    // Gestione fallimento
+                    Toast.makeText(context, "Failed to join league: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+        } else {
+            Toast.makeText(context, "Failed to generate a unique key for the league-team association", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+
 }

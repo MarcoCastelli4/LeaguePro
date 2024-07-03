@@ -78,12 +78,18 @@ class MyLeagueFragment : Fragment() {
         val addLeagueContainer: ConstraintLayout = view.findViewById(R.id.add_league_container)
         addLeagueContainer.visibility = if (UserType.isLeagueManager) View.VISIBLE else View.GONE
 
-        if (UserType.isLeagueManager) {
-            setupFirebase()
-            setupLeagueRecyclerView(view)
+        setupFirebase()
+        setupLeagueRecyclerView(view)
+
+        // load league create by league manager
+        if (UserType.isLeagueManager){
             fetchLeaguesFromDatabase()
         }
 
+        // TODO load league that team has subscribe
+        if (UserType.isLeagueManager==false){
+            fetchTeamLeaguesFromDatabase()
+        }
         val addLeagueIcon: ImageView = view.findViewById(R.id.add_league_icon)
         addLeagueIcon.setOnClickListener {
             showAddLeaguePopup(view) }
@@ -97,7 +103,7 @@ class MyLeagueFragment : Fragment() {
         leagueRecyclerView = view.findViewById(R.id.leagueRecyclerView)
         leagueRecyclerView.layoutManager = LinearLayoutManager(context)
         leagueRecyclerView.setHasFixedSize(true)
-        adapter = LeagueAdapter(requireContext(), leagueList,mDbRef)
+        adapter = LeagueAdapter(requireContext(), leagueList,mDbRef,mAuth)
         leagueRecyclerView.adapter = adapter
     }
 
@@ -129,6 +135,55 @@ class MyLeagueFragment : Fragment() {
             }
         })
     }
+
+    private fun fetchTeamLeaguesFromDatabase() {
+        val currentUserId = mAuth.currentUser?.uid
+
+        // First, fetch all leagues associated with the current user's team
+        mDbRef.child("leagues_team").orderByChild("team_id").equalTo(currentUserId)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(teamSnapshot: DataSnapshot) {
+                    // Clear the current leagueList
+                    leagueList.clear()
+
+                    // Iterate through each league-team association
+                    teamSnapshot.children.forEach { teamLeagueSnapshot ->
+                        val leagueUid = teamLeagueSnapshot.child("league_id").getValue(String::class.java)
+
+                        // Fetch details of the league from leagues table using leagueUid
+                        if (!leagueUid.isNullOrEmpty()) {
+                            mDbRef.child("leagues").child(leagueUid)
+                                .addListenerForSingleValueEvent(object : ValueEventListener {
+                                    override fun onDataChange(leagueSnapshot: DataSnapshot) {
+                                        val league = leagueSnapshot.getValue(League::class.java)
+                                        league?.let {
+                                            leagueList.add(it)
+                                        }
+                                        adapter.notifyDataSetChanged()
+                                    }
+
+                                    override fun onCancelled(error: DatabaseError) {
+                                        Toast.makeText(
+                                            context,
+                                            "Failed to load league data: ${error.message}",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                })
+                        }
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Toast.makeText(
+                        context,
+                        "Failed to load team leagues data: ${error.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            })
+    }
+
 
     private fun showAddLeaguePopup(view: View) {
 
