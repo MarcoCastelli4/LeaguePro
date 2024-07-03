@@ -176,7 +176,7 @@ class MyLeagueFragment : Fragment() {
 
         val datePicker = builder.build()
         datePicker.addOnPositiveButtonClickListener { selection ->
-            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH)
             val startDateString = sdf.format(Date(selection.first ?: 0))
             val endDateString = sdf.format(Date(selection.second ?: 0))
             edtPlayingPeriod.text = "$startDateString - $endDateString"

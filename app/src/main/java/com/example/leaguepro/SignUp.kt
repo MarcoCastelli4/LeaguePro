@@ -21,6 +21,7 @@ class SignUp : AppCompatActivity() {
     private lateinit var edtPassword: EditText
     private lateinit var edtConfirmPws: EditText
     private lateinit var btnSignUp: Button
+    private lateinit var btnGoBack: Button
     private lateinit var mAuth: FirebaseAuth
     private lateinit var mDbRef: DatabaseReference
     private lateinit var edtUserType: Spinner
@@ -37,6 +38,7 @@ class SignUp : AppCompatActivity() {
         edtPassword = findViewById(R.id.edt_psw)
         edtConfirmPws = findViewById(R.id.edt_confirmpsw)
         btnSignUp = findViewById(R.id.btnSignUp)
+        btnGoBack=findViewById(R.id.btnBack)
         mAuth = FirebaseAuth.getInstance()
         edtPswButton = findViewById(R.id.psw_eye_button)
         edtConfirmPswButton = findViewById(R.id.confirm_psw_eye_button)
@@ -67,6 +69,9 @@ class SignUp : AppCompatActivity() {
 
                 signup(userType, fullName, email, password, confirmPassword)
             }
+
+        btnGoBack.setOnClickListener{val intent = Intent(this, Login::class.java)
+            startActivity(intent)}
     }
 
 
