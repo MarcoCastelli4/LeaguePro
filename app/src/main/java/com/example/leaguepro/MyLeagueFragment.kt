@@ -1,5 +1,6 @@
 package com.example.leaguepro
 
+import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
@@ -84,7 +85,9 @@ class MyLeagueFragment : Fragment() {
         }
 
         val addLeagueIcon: ImageView = view.findViewById(R.id.add_league_icon)
-        addLeagueIcon.setOnClickListener { showAddLeaguePopup(view) }
+        addLeagueIcon.setOnClickListener {
+            showAddLeaguePopup(view) }
+
 
 
     }
@@ -128,6 +131,12 @@ class MyLeagueFragment : Fragment() {
     }
 
     private fun showAddLeaguePopup(view: View) {
+
+        // Nascondi la RecyclerView
+        (context as Activity).findViewById<RecyclerView>(R.id.leagueRecyclerView).visibility = View.GONE
+
+
+
         val inflater = LayoutInflater.from(context)
         val popupView = inflater.inflate(R.layout.add_league, null)
         val popupWindow = PopupWindow(
@@ -136,9 +145,16 @@ class MyLeagueFragment : Fragment() {
             LinearLayout.LayoutParams.WRAP_CONTENT,
             true
         )
+
+        popupWindow.setOnDismissListener {
+            // Mostra di nuovo la RecyclerView quando la popup viene chiusa
+            (context as Activity).findViewById<RecyclerView>(R.id.leagueRecyclerView).visibility = View.VISIBLE
+        }
+
         popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0)
         initializePopupFields(popupView)
         setupPopupListeners(popupView, popupWindow)
+
     }
 
     private fun initializePopupFields(popupView: View) {

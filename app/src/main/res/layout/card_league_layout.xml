@@ -5,7 +5,8 @@
     android:layout_marginTop="10dp"
     android:layout_marginLeft="30dp"
     android:layout_marginRight="30dp"
-    android:background="@drawable/container">
+    android:background="@drawable/container"
+   >
 
     <RelativeLayout
         android:id="@+id/lay_league"
@@ -92,7 +93,8 @@
         android:layout_alignParentEnd="true"
         android:layout_marginLeft="10dp"
         android:layout_marginEnd="10dp"
-        android:layout_marginRight="10dp">
+        android:layout_marginRight="10dp"
+        android:layout_marginVertical="10dp">
 
         <TextView
             android:id="@+id/text_prize"
