@@ -7,6 +7,7 @@ import java.util.Date
 
 class League {
 
+    var uid: String?=null
     var name: String? = null
     var address: String? = null
     var level: Float? = null
@@ -18,7 +19,8 @@ class League {
     var leagueManager: String? = null
 
 
-    constructor(name: String?, address: String?, level: Float?,description: String?,entryfee: String?,prize: String?,restrictions: String?,playingPeriod: String?,leagueManager: String?) {
+    constructor(uid: String?,name: String?, address: String?, level: Float?,description: String?,entryfee: String?,prize: String?,restrictions: String?,playingPeriod: String?,leagueManager: String?) {
+        this.uid=uid
         this.name = name
         this.address=address
         this.level=level
@@ -32,7 +34,7 @@ class League {
 
     // Costruttore vuoto richiesto da Firebase
     constructor() : this(
-        null, null, 0.0f, null, null, null, null, null, null
+        null,null, null, 0.0f, null, null, null, null, null, null
     )
 
 

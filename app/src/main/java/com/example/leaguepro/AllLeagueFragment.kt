@@ -76,17 +76,19 @@ class AllLeagueFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        mAuth = FirebaseAuth.getInstance()
+        // creo collegamento con il database
+        mDbRef = FirebaseDatabase.getInstance().getReference()
+
         leagueList= ArrayList()
         leagueRecyclerView = view.findViewById(R.id.leagueRecyclerView)
         leagueRecyclerView.layoutManager = LinearLayoutManager(context)
         leagueRecyclerView.hasFixedSize()
 
-        adapter = LeagueAdapter(requireContext(), leagueList)
+        adapter = LeagueAdapter(requireContext(), leagueList,mDbRef)
         leagueRecyclerView.adapter = adapter
 
-        mAuth = FirebaseAuth.getInstance()
-        // creo collegamento con il database
-        mDbRef = FirebaseDatabase.getInstance().getReference()
+
 
         mDbRef.child("leagues").addValueEventListener(object: ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {

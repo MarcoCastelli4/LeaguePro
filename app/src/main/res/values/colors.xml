@@ -6,5 +6,6 @@
     <color name="secondary">#D9D9D9</color>
     <color name="form">#FFFBFB</color>
     <color name="md_theme_light_onPrimary">#FFFFFF</color>
+    <color name="delete">#D22B2B</color>
 
 </resources>
