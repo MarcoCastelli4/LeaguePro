@@ -103,7 +103,7 @@ class MyLeagueFragment : Fragment() {
         leagueRecyclerView = view.findViewById(R.id.leagueRecyclerView)
         leagueRecyclerView.layoutManager = LinearLayoutManager(context)
         leagueRecyclerView.setHasFixedSize(true)
-        adapter = LeagueAdapter(requireContext(), leagueList,mDbRef,mAuth)
+        adapter = LeagueAdapter(requireContext(), leagueList,mDbRef,mAuth,false)
         leagueRecyclerView.adapter = adapter
     }
 

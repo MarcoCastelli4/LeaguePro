@@ -14,17 +14,26 @@ import android.widget.PopupWindow
 import android.widget.RatingBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
+import com.example.leaguepro.databinding.ActivityMainBinding
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.ValueEventListener
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 // LeagueAdapter è collegato al layout league_item
 class LeagueAdapter(
     val context: Context,
     val leagueList: ArrayList<League>,
     val dbRef: DatabaseReference,
-    val mAuth: FirebaseAuth
+    val mAuth: FirebaseAuth,
+    val fromAllLeague: Boolean
 ) : RecyclerView.Adapter<LeagueAdapter.LeagueViewHolder>() {
 
     class LeagueViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -50,33 +59,101 @@ class LeagueAdapter(
         holder.textPrize.text = currentLeague.prize
         holder.floatRating.rating = currentLeague.level!!
 
-        holder.binButton.setOnClickListener {
-            showConfirmationDialog(currentLeague, position)
+        // Mostro la possibilità di cancellare se sono in MyLeague
+        if (fromAllLeague) {
+            holder.binButton.visibility=View.GONE
         }
+        else {
+                holder.binButton.setOnClickListener {
+                    showConfirmationDialog(currentLeague)
+                }
+        }
+
 
         holder.moreButton.setOnClickListener {
             showLeagueInfoPopup(currentLeague)
         }
     }
 
-    private fun showConfirmationDialog(league: League, position: Int) {
+    private fun showConfirmationDialog(league: League) {
         val builder = AlertDialog.Builder(context, R.style.CustomAlertDialog)
-        builder.setTitle("Delete confirm")
-        builder.setMessage("Are you sure to delete ${league.name} and all info connected?")
+        // Leaugue manager cancella il torneo
+        if (UserType.isLeagueManager) {
+            builder.setTitle("Delete confirm")
+            builder.setMessage("Are you sure to delete ${league.name} and all info connected?")
 
-        builder.setPositiveButton("Delete") { dialog, _ ->
-            removeLeagueFromDatabase(league, position)
-            dialog.dismiss()
+            builder.setPositiveButton("Delete") { dialog, _ ->
+                removeLeagueFromDatabase(league)
+                dialog.dismiss()
+            }
+
+            builder.setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
         }
+        // Team managaer si disiiscrive al torneo
+        if (!UserType.isLeagueManager){
+            builder.setTitle("Unsubscribe confirm")
+            builder.setMessage("Are you sure to unsubscribe from ${league.name}?")
 
-        builder.setNegativeButton("Cancel") { dialog, _ ->
-            dialog.dismiss()
+            builder.setPositiveButton("Unsubscribe") { dialog, _ ->
+                mAuth.currentUser?.uid?.let { removeTeamFromLeague(league, it) }
+                dialog.dismiss()
+            }
+
+            builder.setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
         }
-
         builder.create().show()
     }
+    private fun removeTeamFromLeague(league: League, teamUid: String) {
+        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        val today = Calendar.getInstance().time
 
-    private fun removeLeagueFromDatabase(league: League, position: Int) {
+        try {
+            val startDateString = league.playingPeriod?.split(" - ")?.get(0)
+            val startDate = sdf.parse(startDateString)
+
+            // Posso disiscrivermi fino al giorno prima
+            if (startDate != null && startDate.after(today)) {
+                val leaguesTeamRef = dbRef.child("leagues_team")
+                leaguesTeamRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        for (dataSnapshot in snapshot.children) {
+                            val leagueTeamData = dataSnapshot.value as Map<String, String>
+                            val leagueId = leagueTeamData["league_id"]
+                            val teamId = leagueTeamData["team_id"]
+
+                            if (leagueId == league.uid && teamId == teamUid) {
+                                dataSnapshot.ref.removeValue().addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        leagueList.remove(league)
+                                        // Notifica l'adapter della rimozione
+                                        notifyDataSetChanged()
+                                        Toast.makeText(context, "Team removed from league successfully!", Toast.LENGTH_SHORT).show()
+
+                                    } else {
+                                        Toast.makeText(context, "Failed to remove team from league", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                break
+                            }
+                        }
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        Toast.makeText(context, "Failed to remove team from league: ${error.message}", Toast.LENGTH_SHORT).show()
+                    }
+                })
+            } else {
+                Toast.makeText(context, "Cannot unsubscribe because the league has already started!", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "Error parsing date: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+    private fun removeLeagueFromDatabase(league: League) {
         // Usa leagueId per trovare e rimuovere la league dal database
         dbRef.child("leagues").child(league.uid!!).removeValue().addOnCompleteListener { task ->
             if (task.isSuccessful) {
@@ -93,7 +170,6 @@ class LeagueAdapter(
             }
         }
     }
-
     private fun showLeagueInfoPopup(league: League) {
         val popupView = LayoutInflater.from(context).inflate(R.layout.league_more, null)
         val popupWindow = PopupWindow(
@@ -112,9 +188,43 @@ class LeagueAdapter(
         popupWindow.showAtLocation(popupView, Gravity.CENTER, 0, 0)
 
         val play: Button = popupView.findViewById(R.id.join_button)
-        if (UserType.isLeagueManager){
-            play.visibility = View.GONE
-        }
+        // Il league manager non può iscriversi e se ho la league in myleague non posso riscrivermi
+        // Verifica se l'utente è un team manager
+        val isTeamManager = !UserType.isLeagueManager
+
+// Verifica se la lega è già nel database leagues_team
+        val leagueId = league.uid
+        val leaguesTeamRef = dbRef.child("leagues_team")
+        leaguesTeamRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                var isLeagueInTeamLeagues = false
+                for (dataSnapshot in snapshot.children) {
+                    val leagueTeamData = dataSnapshot.value as Map<String, String>
+                    val fetchedLeagueId = leagueTeamData["league_id"]
+                    val fetchedTeamId = leagueTeamData["team_id"]
+
+                    if (fetchedLeagueId == leagueId) {
+                        // Se c'è una corrispondenza leagues_team con questa lega
+                        isLeagueInTeamLeagues = true
+                        break
+                    }
+                }
+
+                // Determina la visibilità del pulsante "play" in base alle condizioni
+                if (isTeamManager && !isLeagueInTeamLeagues) {
+                    // Se l'utente è team manager e non c'è una corrispondenza leagues_team, il pulsante è visibile
+                    play.visibility = View.VISIBLE
+                } else {
+                    // Altrimenti, il pulsante non è visibile
+                    play.visibility = View.GONE
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Toast.makeText(context, "Failed to check leagues_team: ${error.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
+
 
         // Handle data visualization
         val description: TextView = popupView.findViewById(R.id.more_league_description)
@@ -142,7 +252,6 @@ class LeagueAdapter(
             popupWindow.dismiss()}
         }
     }
-
     private fun addTeamToALeague(league: League, teamUid: String) {
         val leagueUid: String? =league.uid
         // Otteniamo un riferimento al nodo leagues_team
@@ -162,6 +271,7 @@ class LeagueAdapter(
                 .addOnSuccessListener {
                     // Gestione successo
                     Toast.makeText(context, "Team joined league successfully!", Toast.LENGTH_SHORT).show()
+                    // TODO spostarsi in MyLeague e aggiornare menu
                 }
                 .addOnFailureListener { e ->
                     // Gestione fallimento
@@ -170,8 +280,8 @@ class LeagueAdapter(
         } else {
             Toast.makeText(context, "Failed to generate a unique key for the league-team association", Toast.LENGTH_SHORT).show()
         }
-    }
 
+    }
 
 
 }

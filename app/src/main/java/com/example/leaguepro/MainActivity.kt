@@ -20,33 +20,34 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         // Imposta il frammento iniziale
-        replaceFragment(MyLeagueFragment())
+        NavigationManager.replaceFragment(this, MyLeagueFragment())
         binding.bottomNavigationView.post {
             val item = binding.bottomNavigationView.menu.findItem(R.id.myleague)
-            showIndicator(item)
+            NavigationManager.showIndicator(this, binding, item)
         }
 
         // Imposta il listener per la selezione degli elementi nel menu di navigazione in basso
         binding.bottomNavigationView.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.myleague -> {
-                    replaceFragment(MyLeagueFragment())
-                    showIndicator(item)
+                    // Esempio di utilizzo di NavigationManager
+                    NavigationManager.replaceFragment(this, MyLeagueFragment())
+                    NavigationManager.showIndicator(this, binding, item)
                     true
                 }
                 R.id.allLeague -> {
-                    replaceFragment(AllLeagueFragment())
-                    showIndicator(item)
+                    NavigationManager.replaceFragment(this, AllLeagueFragment())
+                    NavigationManager.showIndicator(this, binding, item)
                     true
                 }
                 R.id.myteam -> {
-                    replaceFragment(MyTeamFragment())
-                    showIndicator(item)
+                    NavigationManager.replaceFragment(this, MyTeamFragment())
+                    NavigationManager.showIndicator(this, binding, item)
                     true
                 }
                 R.id.profile -> {
-                    replaceFragment(ProfileFragment())
-                    showIndicator(item)
+                    NavigationManager.replaceFragment(this, ProfileFragment())
+                    NavigationManager.showIndicator(this, binding, item)
                     true
                 }
                 else -> false
@@ -57,14 +58,15 @@ class MainActivity : AppCompatActivity() {
         binding.bottomNavigationView.selectedItemId = R.id.myleague
     }
 
-    private fun replaceFragment(fragment: Fragment) {
+    /*
+    fun replaceFragment(fragment: Fragment) {
         val fragmentManager = supportFragmentManager
         val fragmentTransaction = fragmentManager.beginTransaction()
         fragmentTransaction.replace(R.id.frame_layout, fragment)
         fragmentTransaction.commit()
     }
 
-    private fun showIndicator(item: MenuItem) {
+    fun showIndicator(item: MenuItem) {
         // Ottieni la View associata all'elemento di menu selezionato
         val itemView = binding.bottomNavigationView.findViewById<View>(item.itemId)
         itemView.post {
@@ -78,5 +80,6 @@ class MainActivity : AppCompatActivity() {
             binding.selectionIndicator.visibility = View.VISIBLE
             binding.selectionIndicator.requestLayout()
         }
-    }
+    }*/
+
 }

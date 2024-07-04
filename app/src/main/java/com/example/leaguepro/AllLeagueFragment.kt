@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.leaguepro.databinding.FragmentAllLeagueBinding
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 
@@ -35,6 +36,7 @@ class AllLeagueFragment : Fragment() {
     private lateinit var adapter: LeagueAdapter
     private lateinit var mDbRef: DatabaseReference
     private lateinit var mAuth: FirebaseAuth
+    private lateinit var binding: FragmentAllLeagueBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,7 +87,7 @@ class AllLeagueFragment : Fragment() {
         leagueRecyclerView.layoutManager = LinearLayoutManager(context)
         leagueRecyclerView.hasFixedSize()
 
-        adapter = LeagueAdapter(requireContext(), leagueList,mDbRef,mAuth)
+        adapter = LeagueAdapter(requireContext(),leagueList,mDbRef,mAuth,true)
         leagueRecyclerView.adapter = adapter
 
 
