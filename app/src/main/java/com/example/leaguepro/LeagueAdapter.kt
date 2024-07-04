@@ -23,6 +23,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.ValueEventListener
+import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -253,35 +254,52 @@ class LeagueAdapter(
         }
     }
     private fun addTeamToALeague(league: League, teamUid: String) {
-        val leagueUid: String? =league.uid
-        // Otteniamo un riferimento al nodo leagues_team
-        val leagueTeamRef = dbRef.child("leagues_team")
+        // Verifica che la data di inizio del torneo sia maggiore di oggi
+        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        val today = Calendar.getInstance().time
 
-        // Creiamo un oggetto per il team con l'ID della league e l'ID del team
-        val leagueTeamData = mapOf(
-            "league_id" to leagueUid,
-            "team_id" to teamUid
-        )
+        try {
+            val startDateString = league.playingPeriod?.split(" - ")?.get(0)
+            val startDate = sdf.parse(startDateString)
 
-        // Usiamo push() per generare una chiave univoca per ogni associazione league-team
-        val leagueTeamKey = leagueTeamRef.push().key
+            if (startDate != null && startDate.after(today)) {
+                // Continua con l'aggiunta del team alla league
+                val leagueUid: String? = league.uid
+                // Otteniamo un riferimento al nodo leagues_team
+                val leagueTeamRef = dbRef.child("leagues_team")
 
-        if (leagueTeamKey != null) {
-            leagueTeamRef.child(leagueTeamKey).setValue(leagueTeamData)
-                .addOnSuccessListener {
-                    // Gestione successo
-                    Toast.makeText(context, "Team joined league successfully!", Toast.LENGTH_SHORT).show()
-                    // TODO spostarsi in MyLeague e aggiornare menu
+                // Creiamo un oggetto per il team con l'ID della league e l'ID del team
+                val leagueTeamData = mapOf(
+                    "league_id" to leagueUid,
+                    "team_id" to teamUid
+                )
+
+                // Usiamo push() per generare una chiave univoca per ogni associazione league-team
+                val leagueTeamKey = leagueTeamRef.push().key
+
+                if (leagueTeamKey != null) {
+                    leagueTeamRef.child(leagueTeamKey).setValue(leagueTeamData)
+                        .addOnSuccessListener {
+                            // Gestione successo
+                            Toast.makeText(context, "Team joined league successfully!", Toast.LENGTH_SHORT).show()
+                            // TODO: Spostarsi in MyLeague e aggiornare il menu
+
+                        }
+                        .addOnFailureListener { e ->
+                            // Gestione fallimento
+                            Toast.makeText(context, "Failed to join league: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                } else {
+                    Toast.makeText(context, "Failed to generate a unique key for the league-team association", Toast.LENGTH_SHORT).show()
                 }
-                .addOnFailureListener { e ->
-                    // Gestione fallimento
-                    Toast.makeText(context, "Failed to join league: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-        } else {
-            Toast.makeText(context, "Failed to generate a unique key for the league-team association", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Cannot join league because the league has already started!", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: ParseException) {
+            Toast.makeText(context, "Error parsing date: ${e.message}", Toast.LENGTH_SHORT).show()
         }
-
     }
+
 
 
 }
