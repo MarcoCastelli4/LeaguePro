@@ -30,20 +30,39 @@
         android:textStyle="bold"
         android:layout_below="@id/text"/>
 
-    <Spinner
-        android:id="@+id/user_type"
+    <RelativeLayout
+        android:id="@+id/lay"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/text"
-        android:layout_marginTop="40dp"
-        android:layout_marginLeft="20dp"
-        android:layout_marginRight="20dp"/>
+        android:layout_marginTop="50dp"
+        android:layout_marginLeft="30dp"
+        android:layout_below="@id/text">
+
+        <TextView
+            android:id="@+id/text_role"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select user type:"
+            android:textSize="20sp"
+            android:layout_centerVertical="true"
+            android:textColor="@color/primary"/>
+
+        <Spinner
+            android:id="@+id/user_type"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/text_role"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            />
+    </RelativeLayout>
+
 
     <EditText
         android:id="@+id/edt_fullname"
         android:layout_width="match_parent"
         android:layout_height="50dp"
-        android:layout_below="@id/user_type"
+        android:layout_below="@id/lay"
         android:layout_marginTop="20dp"
         android:layout_marginLeft="20dp"
         android:layout_marginRight="20dp"

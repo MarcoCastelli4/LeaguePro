@@ -94,8 +94,6 @@ class MyLeagueFragment : Fragment() {
         addLeagueIcon.setOnClickListener {
             showAddLeaguePopup(view) }
 
-
-
     }
 
     private fun setupLeagueRecyclerView(view: View) {
