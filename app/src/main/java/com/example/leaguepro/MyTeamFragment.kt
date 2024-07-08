@@ -2,8 +2,8 @@ package com.example.leaguepro
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -112,7 +112,7 @@ class MyTeamFragment : Fragment() {
             updateTeamName(it, edtteam_name, object : TeamIdCallback {
                 override fun onTeamIdUpdated(teamId: String) {
                     this@MyTeamFragment.teamId = teamId
-                    Toast.makeText(context, "Team id: ${this@MyTeamFragment.teamId}", Toast.LENGTH_SHORT).show()
+                    //Toast.makeText(context, "Team id: ${this@MyTeamFragment.teamId}", Toast.LENGTH_SHORT).show()
                     // Aggiorna la visibilità di addPlayerContainer dopo aver ottenuto teamId
                     addPlayerContainer.visibility = if (!UserType.isLeagueManager and !this@MyTeamFragment.teamId.equals("")) View.VISIBLE else View.GONE
                 }
@@ -123,7 +123,7 @@ class MyTeamFragment : Fragment() {
 
         // load team  create by team manager
         if (!UserType.isLeagueManager){
-           // fetchTeamFromDatabase()
+            fetchTeamFromDatabase()
         }
 
         val addPlayerIcon: ImageView = view.findViewById(R.id.add_player_icon)
@@ -160,7 +160,7 @@ class MyTeamFragment : Fragment() {
                     addOrUpdateTeamToDatabase(newName, mAuth.currentUser?.uid, object : TeamIdCallback {
                         override fun onTeamIdUpdated(teamId: String) {
                             this@MyTeamFragment.teamId = teamId
-                            Toast.makeText(context, "Team id: ${this@MyTeamFragment.teamId}", Toast.LENGTH_SHORT).show()
+                            //Toast.makeText(context, "Team id: ${this@MyTeamFragment.teamId}", Toast.LENGTH_SHORT).show()
                             // Aggiorna la visibilità di addPlayerContainer dopo aver ottenuto teamId
                             addPlayerContainer.visibility = if (!UserType.isLeagueManager and !this@MyTeamFragment.teamId.equals("")) View.VISIBLE else View.GONE
                         }
@@ -174,13 +174,48 @@ class MyTeamFragment : Fragment() {
     }
 
     private fun setupLeagueRecyclerView(view: View) {
-        leagueList = ArrayList()
-        leagueRecyclerView = view.findViewById(R.id.leagueRecyclerView)
-        leagueRecyclerView.layoutManager = LinearLayoutManager(context)
-        leagueRecyclerView.setHasFixedSize(true)
-        adapter = LeagueAdapter(requireContext(), leagueList,mDbRef,mAuth,false)
-        leagueRecyclerView.adapter = adapter
+        playerList = ArrayList()
+        playerRecyclerView = view.findViewById(R.id.playersRecyclerView)
+        playerRecyclerView.layoutManager = LinearLayoutManager(context)
+        playerRecyclerView.setHasFixedSize(true)
+        adapter = PlayerAdapter(requireContext(), playerList,mDbRef,mAuth)
+        playerRecyclerView.adapter = adapter
     }
+    private fun fetchTeamFromDatabase() {
+        mDbRef.child("teams").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                playerList.clear() // Assicurati che playerList sia una MutableMap
+
+                for (postSnapshot in snapshot.children) {
+                    // Estrai il team_manager id
+                    val teamManagerId = postSnapshot.child("team_manager").getValue(String::class.java)
+
+                    // Verifica se il team_manager id corrisponde all'utente corrente
+                    if (teamManagerId == mAuth.currentUser?.uid) {
+                        // Estrai la lista dei giocatori per questo team
+                        val playersSnapshot = postSnapshot.child("players")
+                        for (playerSnapshot in playersSnapshot.children) {
+                            val player = playerSnapshot.getValue(Player::class.java)
+                            player?.let {
+                                playerList.add(player)
+                            }
+                        }
+                    } else {
+                        Log.d("FirebaseData", "Invalid team data for manager ID: $teamManagerId")
+                    }
+                }
+                adapter.notifyDataSetChanged()
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Toast.makeText(context, "Failed to load data: ${error.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+
+
+
     private fun updateTeamName(userId: String, teamNameTextView: TextView,callback: TeamIdCallback) {
         mDbRef.child("teams").orderByChild("team_manager").equalTo(userId)
             .addListenerForSingleValueEvent(object : ValueEventListener {
@@ -188,11 +223,11 @@ class MyTeamFragment : Fragment() {
                     if (snapshot.exists()) {
                         // Trova il team associato all'ID dell'utente corrente
                         for (teamSnapshot in snapshot.children) {
-                            val team = teamSnapshot.getValue(Team::class.java)
-                            if (team != null) {
+                            val id = teamSnapshot.child("uid").getValue().toString()
+                            if (id != "") {
                                 // Aggiorna la TextView con il nome del team
-                                teamNameTextView.text = team.name
-                                team.uid?.let { callback.onTeamIdUpdated(it) }
+                                teamNameTextView.text = teamSnapshot.child("name").getValue().toString()
+                                callback.onTeamIdUpdated(id)
                             }
                         }
                     }
@@ -216,7 +251,7 @@ class MyTeamFragment : Fragment() {
     private fun showAddPlayerPopup(view: View) {
 
         // Nascondi la RecyclerView
-        (context as Activity).findViewById<RecyclerView>(R.id.teamRecyclerView).visibility = View.GONE
+        (context as Activity).findViewById<RecyclerView>(R.id.playersRecyclerView).visibility = View.GONE
 
         val inflater = LayoutInflater.from(context)
         val popupView = inflater.inflate(R.layout.add_player, null)
@@ -229,7 +264,7 @@ class MyTeamFragment : Fragment() {
 
         popupWindow.setOnDismissListener {
             // Mostra di nuovo la RecyclerView quando la popup viene chiusa
-            (context as Activity).findViewById<RecyclerView>(R.id.teamRecyclerView).visibility = View.VISIBLE
+            (context as Activity).findViewById<RecyclerView>(R.id.playersRecyclerView).visibility = View.VISIBLE
         }
 
         popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0)
@@ -338,7 +373,7 @@ class MyTeamFragment : Fragment() {
         if (playerId != null) {
             val player = Player(playername, playerrole, playerbirthday,playerId)
             // Set the value for the new node
-            mDbRef.child("teams").child(team).child(playerId).setValue(player)
+            mDbRef.child("teams").child(team).child("players").child(playerId).setValue(player)
                 .addOnSuccessListener {
                     // Handle success
                     Toast.makeText(context, "Player added successfully!", Toast.LENGTH_SHORT).show()
@@ -362,7 +397,7 @@ class MyTeamFragment : Fragment() {
                         for (teamSnapshot in snapshot.children) {
                             val teamId = teamSnapshot.key
                             if (teamId != null) {
-                                val updatedTeam = Team(teamId, name, teamManager)
+                                val updatedTeam = Team(teamId, name, teamManager,playerList)
                                 mDbRef.child("teams").child(teamId).setValue(updatedTeam)
                                     .addOnSuccessListener {
                                         if (name != null) {
@@ -379,7 +414,7 @@ class MyTeamFragment : Fragment() {
                         // Create new team
                         val teamId = mDbRef.child("teams").push().key
                         if (teamId != null) {
-                            val newTeam = Team(teamId, name, teamManager)
+                            val newTeam = Team(teamId, name, teamManager,playerList)
                             mDbRef.child("teams").child(teamId).setValue(newTeam)
                                 .addOnSuccessListener {
                                     if (name != null) {
