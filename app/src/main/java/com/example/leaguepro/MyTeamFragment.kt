@@ -2,8 +2,8 @@ package com.example.leaguepro
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.Gravity
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -19,10 +19,10 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.DateValidatorPointBackward
-import com.google.android.material.datepicker.DateValidatorPointForward
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -53,6 +53,12 @@ class MyTeamFragment : Fragment() {
     private lateinit var edtplayer_name: EditText
     private lateinit var edtplayer_role: Spinner
     private lateinit var edtplayer_birthday: TextView
+    private lateinit var edtteam_name: TextView
+    private var teamId: String? = null
+
+    private lateinit var playerList: ArrayList<Player>
+    private lateinit var adapter: PlayerAdapter
+    private lateinit var playerRecyclerView: RecyclerView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,9 +83,9 @@ class MyTeamFragment : Fragment() {
          *
          * @param param1 Parameter 1.
          * @param param2 Parameter 2.
+         *         // TODO: Rename and change types and number of para
          * @return A new instance of fragment MyTeamFragment.
          */
-        // TODO: Rename and change types and number of parameters
         @JvmStatic
         fun newInstance(param1: String, param2: String) =
             MyTeamFragment().apply {
@@ -95,12 +101,25 @@ class MyTeamFragment : Fragment() {
         setupView(view)
     }
 
-    private fun setupView(view: View) {
-        val addPlayerContainer: ConstraintLayout = view.findViewById(R.id.add_player_container)
-        addPlayerContainer.visibility = if (!UserType.isLeagueManager) View.VISIBLE else View.GONE
 
+    private fun setupView(view: View) {
         setupFirebase()
-        //setupLeagueRecyclerView(view)
+        val edtteam_name: TextView = view.findViewById(R.id.team_name)
+        val addPlayerContainer: ConstraintLayout = view.findViewById(R.id.add_player_container)
+        // Aggiorna il nome del team nella TextView
+        // Chiamata a updateTeamName con un callback per ottenere teamId aggiornato
+        mAuth.currentUser?.uid?.let {
+            updateTeamName(it, edtteam_name, object : TeamIdCallback {
+                override fun onTeamIdUpdated(teamId: String) {
+                    this@MyTeamFragment.teamId = teamId
+                    Toast.makeText(context, "Team id: ${this@MyTeamFragment.teamId}", Toast.LENGTH_SHORT).show()
+                    // Aggiorna la visibilità di addPlayerContainer dopo aver ottenuto teamId
+                    addPlayerContainer.visibility = if (!UserType.isLeagueManager and !this@MyTeamFragment.teamId.equals("")) View.VISIBLE else View.GONE
+                }
+            })
+        }
+
+        setupLeagueRecyclerView(view)
 
         // load team  create by team manager
         if (!UserType.isLeagueManager){
@@ -111,25 +130,81 @@ class MyTeamFragment : Fragment() {
         addPlayerIcon.setOnClickListener {
             showAddPlayerPopup(view) }
 
-        val nameTeam: TextView = view.findViewById(R.id.team_name)
-        nameTeam.setOnClickListener {
-            // Create an EditText to enter the new name
-            val editText = EditText(requireContext())
-            editText.setText(nameTeam.text)
+        edtteam_name.setOnClickListener {
+            // Crea un EditText per inserire il nuovo nome
+            val editText = EditText(requireContext()).apply {
+                setText(edtteam_name.text)
+            }
 
-            // Create a dialog
-            AlertDialog.Builder(requireContext())
+            // Crea un AlertDialog
+            val dialog = AlertDialog.Builder(requireContext(), R.style.CustomAlertDialogPositive)
                 .setTitle("Change Team Name")
                 .setView(editText)
-                .setPositiveButton("Save") { dialog, which ->
-                    // Update the TextView with the new name
-                    val newName = editText.text.toString()
-                    nameTeam.text = newName
-                    addTeamToDatabse(nameTeam.text)
-                }
+                .setPositiveButton("Save", null)  // Pass null per gestire il click manualmente
                 .setNegativeButton("Cancel", null)
-                .show()
+                .create()
+
+            // Mostra il dialogo
+            dialog.show()
+
+            // Gestione manuale del click sul pulsante "Save"
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                // Controlla che l'input non sia vuoto
+                val newName = editText.text.toString().trim()
+                if (newName.isEmpty()) {
+                    // Mostra un messaggio di errore nel campo di input
+                    editText.error = "Team name cannot be empty"
+                } else {
+                    // Aggiorna il TextView con il nuovo nome e salva il team
+                    edtteam_name.text = newName
+                    addOrUpdateTeamToDatabase(newName, mAuth.currentUser?.uid, object : TeamIdCallback {
+                        override fun onTeamIdUpdated(teamId: String) {
+                            this@MyTeamFragment.teamId = teamId
+                            Toast.makeText(context, "Team id: ${this@MyTeamFragment.teamId}", Toast.LENGTH_SHORT).show()
+                            // Aggiorna la visibilità di addPlayerContainer dopo aver ottenuto teamId
+                            addPlayerContainer.visibility = if (!UserType.isLeagueManager and !this@MyTeamFragment.teamId.equals("")) View.VISIBLE else View.GONE
+                        }
+                    })
+                    dialog.dismiss()  // Chiudi il dialogo
+                }
+            }
         }
+
+
+    }
+
+    private fun setupLeagueRecyclerView(view: View) {
+        leagueList = ArrayList()
+        leagueRecyclerView = view.findViewById(R.id.leagueRecyclerView)
+        leagueRecyclerView.layoutManager = LinearLayoutManager(context)
+        leagueRecyclerView.setHasFixedSize(true)
+        adapter = LeagueAdapter(requireContext(), leagueList,mDbRef,mAuth,false)
+        leagueRecyclerView.adapter = adapter
+    }
+    private fun updateTeamName(userId: String, teamNameTextView: TextView,callback: TeamIdCallback) {
+        mDbRef.child("teams").orderByChild("team_manager").equalTo(userId)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        // Trova il team associato all'ID dell'utente corrente
+                        for (teamSnapshot in snapshot.children) {
+                            val team = teamSnapshot.getValue(Team::class.java)
+                            if (team != null) {
+                                // Aggiorna la TextView con il nome del team
+                                teamNameTextView.text = team.name
+                                team.uid?.let { callback.onTeamIdUpdated(it) }
+                            }
+                        }
+                    }
+                    else{
+                        callback.onTeamIdUpdated("")
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Toast.makeText(context, "Database error: ${error.message}", Toast.LENGTH_SHORT).show()
+                }
+            })
 
     }
 
@@ -166,6 +241,7 @@ class MyTeamFragment : Fragment() {
         edtplayer_name = popupView.findViewById(R.id.edt_player_name)
         edtplayer_role = popupView.findViewById(R.id.edt_player_role)
         edtplayer_birthday = popupView.findViewById(R.id.edt_player_birthday)
+
         mAuth = FirebaseAuth.getInstance()
 
         // Create an ArrayAdapter using the string array and a default spinner layout.
@@ -205,12 +281,13 @@ class MyTeamFragment : Fragment() {
             return
         }
 
-        addPlayerToTeam(
-            playername,
-            playerole,
-            playerbirthday,
-            mAuth.currentUser?.uid!!
-        )
+            addPlayerToTeam(
+                playername,
+                playerole,
+                playerbirthday,
+                teamId
+            )
+
         popupWindow.dismiss()
     }
 
@@ -254,19 +331,14 @@ class MyTeamFragment : Fragment() {
         datePicker.show(requireFragmentManager(), "DATE_PICKER")
     }
 
-    private fun addPlayerToTeam(
-        playername: String?,
-        playerrole: String?,
-        playerbirthday: String?,
-        team: String?
-    ) {
+    private fun addPlayerToTeam(playername: String?, playerrole: String?, playerbirthday: String?, team: String?) {
         // Generate a unique key using push()
-        val playerId = mDbRef.child(team!!).push().key
+        val playerId = mDbRef.child("teams").child(team!!).push().key
 
         if (playerId != null) {
             val player = Player(playername, playerrole, playerbirthday,playerId)
             // Set the value for the new node
-            mDbRef.child(team).child(playerId).setValue(player)
+            mDbRef.child("teams").child(team).child(playerId).setValue(player)
                 .addOnSuccessListener {
                     // Handle success
                     Toast.makeText(context, "Player added successfully!", Toast.LENGTH_SHORT).show()
@@ -280,4 +352,58 @@ class MyTeamFragment : Fragment() {
             Toast.makeText(context, "Failed to generate unique key", Toast.LENGTH_SHORT).show()
         }
     }
+
+    private fun addOrUpdateTeamToDatabase(name: String?, teamManager: String?,callback: TeamIdCallback) {
+        mDbRef.child("teams").orderByChild("team_manager").equalTo(teamManager)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        // Update existing team
+                        for (teamSnapshot in snapshot.children) {
+                            val teamId = teamSnapshot.key
+                            if (teamId != null) {
+                                val updatedTeam = Team(teamId, name, teamManager)
+                                mDbRef.child("teams").child(teamId).setValue(updatedTeam)
+                                    .addOnSuccessListener {
+                                        if (name != null) {
+                                            callback.onTeamIdUpdated(teamId)
+                                        }
+                                        Toast.makeText(context, "Team updated successfully!", Toast.LENGTH_SHORT).show()
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Toast.makeText(context, "Failed to update team: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                            }
+                        }
+                    } else {
+                        // Create new team
+                        val teamId = mDbRef.child("teams").push().key
+                        if (teamId != null) {
+                            val newTeam = Team(teamId, name, teamManager)
+                            mDbRef.child("teams").child(teamId).setValue(newTeam)
+                                .addOnSuccessListener {
+                                    if (name != null) {
+                                        callback.onTeamIdUpdated(teamId)
+                                    }
+                                    Toast.makeText(context, "Team added successfully!", Toast.LENGTH_SHORT).show()
+                                }
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(context, "Failed to add team: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                        } else {
+                            Toast.makeText(context, "Failed to generate unique key", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Toast.makeText(context, "Database error: ${error.message}", Toast.LENGTH_SHORT).show()
+                }
+            })
+    }
+
+    interface TeamIdCallback {
+        fun onTeamIdUpdated(teamId: String)
+    }
+
 }
