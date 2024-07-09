@@ -39,6 +39,7 @@ class LeagueAdapter(
         val floatRating: RatingBar = itemView.findViewById(R.id.league_level)
         val binButton: ImageView = itemView.findViewById(R.id.bin)
         val moreButton: ImageView = itemView.findViewById(R.id.more)
+        val availablePlaces: TextView=itemView.findViewById(R.id.numberAvailable)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LeagueViewHolder {
@@ -56,21 +57,45 @@ class LeagueAdapter(
         holder.textPrize.text = currentLeague.prize
         holder.floatRating.rating = currentLeague.level!!
 
-        // Mostro la possibilità di cancellare se sono in MyLeague
-        if (fromAllLeague) {
-            holder.binButton.visibility=View.GONE
-        }
-        else {
-                holder.binButton.setOnClickListener {
-                    showConfirmationDialog(currentLeague)
-                }
+        // Effettua una query al database per ottenere il numero di team iscritti
+        val leagueId = currentLeague.uid
+        if (leagueId != null) {
+            dbRef.child("leagues_team")
+                .orderByChild("league_id")
+                .equalTo(leagueId)
+                .addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(dataSnapshot: DataSnapshot) {
+                        val numberOfTeams = dataSnapshot.childrenCount
+                        val maxTeams = currentLeague.maxNumberTeam
+                        val availablePlaces = maxTeams?.minus(numberOfTeams.toFloat())
+                        if (availablePlaces != null) {
+                            holder.availablePlaces.text = "${availablePlaces.toInt()}"
+                        }
+                    }
+
+                    override fun onCancelled(databaseError: DatabaseError) {
+                        // Handle error
+                        holder.availablePlaces.text = "Error loading places"
+                    }
+                })
+        } else {
+            holder.availablePlaces.text = "Error loading places"
         }
 
+        // Mostra la possibilità di cancellare se sono in MyLeague
+        if (fromAllLeague) {
+            holder.binButton.visibility = View.GONE
+        } else {
+            holder.binButton.setOnClickListener {
+                showConfirmationDialog(currentLeague)
+            }
+        }
 
         holder.moreButton.setOnClickListener {
             showLeagueInfoPopup(currentLeague)
         }
     }
+
 
     private fun showConfirmationDialog(league: League) {
         val builder = AlertDialog.Builder(context, R.style.CustomAlertDialog)
@@ -185,36 +210,32 @@ class LeagueAdapter(
         popupWindow.showAtLocation(popupView, Gravity.CENTER, 0, 0)
 
         val play: Button = popupView.findViewById(R.id.join_button)
-        // Il league manager non può iscriversi e se ho la league in myleague non posso riscrivermi
-        // Verifica se l'utente è un team manager
         val isTeamManager = !UserInfo.isLeagueManager
 
-// Verifica se la lega è già nel database leagues_team
         val leagueId = league.uid
         val leaguesTeamRef = dbRef.child("leagues_team")
-        leaguesTeamRef.addListenerForSingleValueEvent(object : ValueEventListener {
+
+        leaguesTeamRef.orderByChild("league_id").equalTo(leagueId).addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 var isLeagueInTeamLeagues = false
+                val numberOfTeams = snapshot.childrenCount
+                val maxTeams = league.maxNumberTeam ?: 0
+
                 for (dataSnapshot in snapshot.children) {
                     val leagueTeamData = dataSnapshot.value as Map<String, String>
                     val fetchedLeagueId = leagueTeamData["league_id"]
                     val fetchedTeamId = leagueTeamData["team_id"]
 
-                    if (fetchedLeagueId == leagueId) {
-                        // Se c'è una corrispondenza leagues_team con questa lega
+                    if (fetchedLeagueId == leagueId && fetchedTeamId == UserInfo.team_id) {
                         isLeagueInTeamLeagues = true
                         break
                     }
                 }
 
-                //Toast.makeText(context, "Failed to check leagues_team: ${UserInfo.team_id}", Toast.LENGTH_SHORT).show()
-
                 // Determina la visibilità del pulsante "play" in base alle condizioni
-                if (!UserInfo.team_id.equals("") && !isLeagueInTeamLeagues) {
-                    // Se l'utente è team manager e non c'è una corrispondenza leagues_team, il pulsante è visibile
+                if (!UserInfo.team_id.equals("") && !isLeagueInTeamLeagues && numberOfTeams < maxTeams.toFloat()) {
                     play.visibility = View.VISIBLE
                 } else {
-                    // Altrimenti, il pulsante non è visibile
                     play.visibility = View.GONE
                 }
             }
@@ -224,14 +245,12 @@ class LeagueAdapter(
             }
         })
 
-
         // Handle data visualization
         val description: TextView = popupView.findViewById(R.id.more_league_description)
         val address: TextView = popupView.findViewById(R.id.edt_more_address)
         val period: TextView = popupView.findViewById(R.id.edt_more_playing_period)
         val entry: TextView = popupView.findViewById(R.id.edt_more_euro)
-        val restrictions: TextView = popupView.findViewById(R.id.edt_more_info
-        )
+        val restrictions: TextView = popupView.findViewById(R.id.edt_more_info)
 
         description.text = league.description
         address.text = league.address
@@ -245,11 +264,12 @@ class LeagueAdapter(
             popupWindow.dismiss()
         }
 
-        play.setOnClickListener{
+        play.setOnClickListener {
             UserInfo.team_id?.let { it1 -> addTeamToALeague(league, it1) }
             popupWindow.dismiss()
         }
     }
+
     private fun addTeamToALeague(league: League, teamUid: String) {
         // Verifica che la data di inizio del torneo sia maggiore di oggi
         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -260,35 +280,47 @@ class LeagueAdapter(
             val startDate = sdf.parse(startDateString)
 
             if (startDate != null && startDate.after(today)) {
-                // Continua con l'aggiunta del team alla league
+                // Verifica il numero massimo di team consentiti
                 val leagueUid: String? = league.uid
-                // Otteniamo un riferimento al nodo leagues_team
-                val leagueTeamRef = dbRef.child("leagues_team")
+                val leagueTeamsRef = dbRef.child("leagues_team").orderByChild("league_id").equalTo(leagueUid)
 
-                // Creiamo un oggetto per il team con l'ID della league e l'ID del team
-                val leagueTeamData = mapOf(
-                    "league_id" to leagueUid,
-                    "team_id" to teamUid
-                )
+                leagueTeamsRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        val currentTeamCount = snapshot.childrenCount
+                        if (league.maxNumberTeam != null && currentTeamCount < league.maxNumberTeam!!) {
+                            // Continua con l'aggiunta del team alla league
+                            val leagueTeamRef = dbRef.child("leagues_team")
+                            val leagueTeamData = mapOf(
+                                "league_id" to leagueUid,
+                                "team_id" to teamUid
+                            )
 
-                // Usiamo push() per generare una chiave univoca per ogni associazione league-team
-                val leagueTeamKey = leagueTeamRef.push().key
+                            // Usiamo push() per generare una chiave univoca per ogni associazione league-team
+                            val leagueTeamKey = leagueTeamRef.push().key
 
-                if (leagueTeamKey != null) {
-                    leagueTeamRef.child(leagueTeamKey).setValue(leagueTeamData)
-                        .addOnSuccessListener {
-                            // Gestione successo
-                            Toast.makeText(context, "Team joined league successfully!", Toast.LENGTH_SHORT).show()
-                            // TODO: Spostarsi in MyLeague e aggiornare il menu
-
+                            if (leagueTeamKey != null) {
+                                leagueTeamRef.child(leagueTeamKey).setValue(leagueTeamData)
+                                    .addOnSuccessListener {
+                                        // Gestione successo
+                                        Toast.makeText(context, "Team joined league successfully!", Toast.LENGTH_SHORT).show()
+                                        // TODO: Spostarsi in MyLeague e aggiornare il menu
+                                    }
+                                    .addOnFailureListener { e ->
+                                        // Gestione fallimento
+                                        Toast.makeText(context, "Failed to join league: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                            } else {
+                                Toast.makeText(context, "Failed to generate a unique key for the league-team association", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            Toast.makeText(context, "Cannot join league because it has reached the maximum number of teams!", Toast.LENGTH_SHORT).show()
                         }
-                        .addOnFailureListener { e ->
-                            // Gestione fallimento
-                            Toast.makeText(context, "Failed to join league: ${e.message}", Toast.LENGTH_SHORT).show()
-                        }
-                } else {
-                    Toast.makeText(context, "Failed to generate a unique key for the league-team association", Toast.LENGTH_SHORT).show()
-                }
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        Toast.makeText(context, "Failed to check league team count: ${error.message}", Toast.LENGTH_SHORT).show()
+                    }
+                })
             } else {
                 Toast.makeText(context, "Cannot join league because the league has already started!", Toast.LENGTH_SHORT).show()
             }
@@ -296,6 +328,7 @@ class LeagueAdapter(
             Toast.makeText(context, "Error parsing date: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
+
 
 
 

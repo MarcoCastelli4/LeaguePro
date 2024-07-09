@@ -182,10 +182,21 @@
             android:src="@drawable/date_range" />
     </RelativeLayout>
 
+    <EditText
+        android:id="@+id/edt_maxTeamNumber"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Max team number"
+        android:layout_centerVertical="true"
+        android:layout_below="@id/lay"
+        android:textSize="20sp"
+        android:inputType="number"
+        />
+
     <!-- Save Button -->
     <Button
         android:id="@+id/btn_save"
-        android:layout_below="@id/lay"
+        android:layout_below="@id/edt_maxTeamNumber"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Save"

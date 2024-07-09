@@ -41,6 +41,7 @@ class MyLeagueFragment : Fragment() {
     private lateinit var edtleague_prize: EditText
     private lateinit var edtleague_restrictions: EditText
     private lateinit var edtleague_playingPeriod: TextView
+    private lateinit var edtleague_MaxTeamNumber:EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -217,6 +218,7 @@ class MyLeagueFragment : Fragment() {
         edtleague_prize = popupView.findViewById(R.id.edt_league_prize)
         edtleague_restrictions = popupView.findViewById(R.id.edt_league_restrictions)
         edtleague_playingPeriod = popupView.findViewById(R.id.edt_playing_period)
+        edtleague_MaxTeamNumber=popupView.findViewById(R.id.edt_maxTeamNumber)
         mAuth = FirebaseAuth.getInstance()
 
         val btnPlayingPeriod: ImageView = popupView.findViewById(R.id.btn_playing_period)
@@ -261,6 +263,7 @@ class MyLeagueFragment : Fragment() {
         val leagueprize = edtleague_prize.text.toString()
         val leaguerestrictions = edtleague_restrictions.text.toString()
         val leagueplayingPeriod = edtleague_playingPeriod.text.toString()
+        val leagueMaxTeamNumber= edtleague_MaxTeamNumber.text.toString().toFloat()
 
         if (!validateFields(
                 leaguename,
@@ -269,7 +272,8 @@ class MyLeagueFragment : Fragment() {
                 leagueentryfee,
                 leagueprize,
                 leaguerestrictions,
-                leagueplayingPeriod
+                leagueplayingPeriod,
+                leagueMaxTeamNumber
             )
         ) {
             return
@@ -284,7 +288,8 @@ class MyLeagueFragment : Fragment() {
             leagueprize,
             leaguerestrictions,
             leagueplayingPeriod,
-            mAuth.currentUser?.uid!!
+            mAuth.currentUser?.uid!!,
+            leagueMaxTeamNumber
         )
         popupWindow.dismiss()
     }
@@ -305,7 +310,8 @@ class MyLeagueFragment : Fragment() {
                                leagueentryfee: String?,
                                leagueprize: String?,
                                leaguerestrictions: String?,
-                               leagueplayingPeriod: String?): Boolean {
+                               leagueplayingPeriod: String?,
+                               leagueMaxTeamNumber: Float?): Boolean {
         var valid = true
 
         // Check each field and set an error message if it's empty
@@ -340,6 +346,13 @@ class MyLeagueFragment : Fragment() {
             valid = false
         }
 
+        if (leagueMaxTeamNumber != null) {
+            if (leagueMaxTeamNumber < 4) {
+                edtleague_MaxTeamNumber.error = "Please enter a number greater that 4"
+                valid = false
+            }
+        }
+
         return valid
     }
 
@@ -354,13 +367,14 @@ class MyLeagueFragment : Fragment() {
         prize: String?,
         restrictions: String?,
         playingPeriod: String?,
-        leagueManager: String?
+        leagueManager: String?,
+        maxTeamNumber: Float?
     ) {
         // Generate a unique key using push()
         val leagueId = mDbRef.child("leagues").push().key
 
         if (leagueId != null) {
-            val league = League(leagueId, name, place, level, description, entry, prize, restrictions, playingPeriod, leagueManager)
+            val league = League(leagueId, name, place, level, description, entry, prize, restrictions, playingPeriod, leagueManager,maxTeamNumber)
             // Set the value for the new node
             mDbRef.child("leagues").child(leagueId).setValue(league)
                 .addOnSuccessListener {
