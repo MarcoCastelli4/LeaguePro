@@ -11,8 +11,11 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.jakewharton.threetenabp.AndroidThreeTen
 
 class Login : AppCompatActivity() {
@@ -23,6 +26,7 @@ class Login : AppCompatActivity() {
     private lateinit var mAuth: FirebaseAuth
     private lateinit var edtPswButton: ImageView
     private lateinit var mDbRef: DatabaseReference
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,7 +90,11 @@ class Login : AppCompatActivity() {
                                     val type = document.child("userType").getValue(String::class.java)
 
                                     // Update userType global
-                                    UserType.isLeagueManager = type== "League Manager"
+                                    UserInfo.isLeagueManager = type== "League Manager"
+
+                                    // Update team_id global
+                                    mAuth.currentUser?.uid?.let { it1 -> findTeamId(it1) }
+
                                     // Navigate to MainActivity
                                     val intent = Intent(this@Login, MainActivity::class.java)
                                     startActivity(intent)
@@ -103,6 +111,29 @@ class Login : AppCompatActivity() {
                     Toast.makeText(this@Login, "User does not exist", Toast.LENGTH_SHORT).show()
                 }
             }
+    }
+    private fun findTeamId (userId: String) {
+        mDbRef.child("teams").orderByChild("team_manager").equalTo(userId)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        // Trova il team associato all'ID dell'utente corrente
+                        for (teamSnapshot in snapshot.children) {
+                            val id = teamSnapshot.child("uid").getValue().toString()
+                            if (id != "") {
+                                // Aggiorna variabile globale
+                                UserInfo.team_id = id
+                            }
+                        }
+                    }
+
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    TODO("Not yet implemented")
+                }
+            })
+
     }
 }
 

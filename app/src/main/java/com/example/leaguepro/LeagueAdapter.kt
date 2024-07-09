@@ -3,7 +3,6 @@ package com.example.leaguepro
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
-import android.content.Intent
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -14,10 +13,7 @@ import android.widget.PopupWindow
 import android.widget.RatingBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
-import com.example.leaguepro.databinding.ActivityMainBinding
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -79,7 +75,7 @@ class LeagueAdapter(
     private fun showConfirmationDialog(league: League) {
         val builder = AlertDialog.Builder(context, R.style.CustomAlertDialog)
         // Leaugue manager cancella il torneo
-        if (UserType.isLeagueManager) {
+        if (UserInfo.isLeagueManager) {
             builder.setTitle("Delete confirm")
             builder.setMessage("Are you sure to delete ${league.name} and all info connected?")
 
@@ -93,12 +89,12 @@ class LeagueAdapter(
             }
         }
         // Team managaer si disiiscrive al torneo
-        if (!UserType.isLeagueManager){
+        if (!UserInfo.isLeagueManager){
             builder.setTitle("Unsubscribe confirm")
             builder.setMessage("Are you sure to unsubscribe from ${league.name}?")
 
             builder.setPositiveButton("Unsubscribe") { dialog, _ ->
-                mAuth.currentUser?.uid?.let { removeTeamFromLeague(league, it) }
+                UserInfo.team_id?.let { removeTeamFromLeague(league, it) }
                 dialog.dismiss()
             }
 
@@ -191,7 +187,7 @@ class LeagueAdapter(
         val play: Button = popupView.findViewById(R.id.join_button)
         // Il league manager non può iscriversi e se ho la league in myleague non posso riscrivermi
         // Verifica se l'utente è un team manager
-        val isTeamManager = !UserType.isLeagueManager
+        val isTeamManager = !UserInfo.isLeagueManager
 
 // Verifica se la lega è già nel database leagues_team
         val leagueId = league.uid
@@ -211,8 +207,10 @@ class LeagueAdapter(
                     }
                 }
 
+                //Toast.makeText(context, "Failed to check leagues_team: ${UserInfo.team_id}", Toast.LENGTH_SHORT).show()
+
                 // Determina la visibilità del pulsante "play" in base alle condizioni
-                if (isTeamManager && !isLeagueInTeamLeagues) {
+                if (!UserInfo.team_id.equals("") && !isLeagueInTeamLeagues) {
                     // Se l'utente è team manager e non c'è una corrispondenza leagues_team, il pulsante è visibile
                     play.visibility = View.VISIBLE
                 } else {
@@ -248,9 +246,8 @@ class LeagueAdapter(
         }
 
         play.setOnClickListener{
-            // attualmente creo la tabella con id league e id utente, sarà da mettere al posto di quest'ultimo l'id della squadra
-            mAuth.currentUser?.uid?.let { it1 -> addTeamToALeague(league, it1)
-            popupWindow.dismiss()}
+            UserInfo.team_id?.let { it1 -> addTeamToALeague(league, it1) }
+            popupWindow.dismiss()
         }
     }
     private fun addTeamToALeague(league: League, teamUid: String) {

@@ -54,7 +54,7 @@ class MyTeamFragment : Fragment() {
     private lateinit var edtplayer_role: Spinner
     private lateinit var edtplayer_birthday: TextView
     private lateinit var edtteam_name: TextView
-    private var teamId: String? = null
+   // private var teamId: String? = null
 
     private lateinit var playerList: ArrayList<Player>
     private lateinit var adapter: PlayerAdapter
@@ -111,10 +111,10 @@ class MyTeamFragment : Fragment() {
         mAuth.currentUser?.uid?.let {
             updateTeamName(it, edtteam_name, object : TeamIdCallback {
                 override fun onTeamIdUpdated(teamId: String) {
-                    this@MyTeamFragment.teamId = teamId
+                    UserInfo.team_id=teamId
                     //Toast.makeText(context, "Team id: ${this@MyTeamFragment.teamId}", Toast.LENGTH_SHORT).show()
                     // Aggiorna la visibilità di addPlayerContainer dopo aver ottenuto teamId
-                    addPlayerContainer.visibility = if (!UserType.isLeagueManager and !this@MyTeamFragment.teamId.equals("")) View.VISIBLE else View.GONE
+                    addPlayerContainer.visibility = if (!UserInfo.isLeagueManager and !UserInfo.team_id.equals("")) View.VISIBLE else View.GONE
                 }
             })
         }
@@ -122,7 +122,7 @@ class MyTeamFragment : Fragment() {
         setupLeagueRecyclerView(view)
 
         // load team  create by team manager
-        if (!UserType.isLeagueManager){
+        if (!UserInfo.isLeagueManager){
             fetchTeamFromDatabase()
         }
 
@@ -159,10 +159,10 @@ class MyTeamFragment : Fragment() {
                     edtteam_name.text = newName
                     addOrUpdateTeamToDatabase(newName, mAuth.currentUser?.uid, object : TeamIdCallback {
                         override fun onTeamIdUpdated(teamId: String) {
-                            this@MyTeamFragment.teamId = teamId
+                            UserInfo.team_id = teamId
                             //Toast.makeText(context, "Team id: ${this@MyTeamFragment.teamId}", Toast.LENGTH_SHORT).show()
                             // Aggiorna la visibilità di addPlayerContainer dopo aver ottenuto teamId
-                            addPlayerContainer.visibility = if (!UserType.isLeagueManager and !this@MyTeamFragment.teamId.equals("")) View.VISIBLE else View.GONE
+                            addPlayerContainer.visibility = if (!UserInfo.isLeagueManager and !UserInfo.team_id.equals("")) View.VISIBLE else View.GONE
                         }
                     })
                     dialog.dismiss()  // Chiudi il dialogo
@@ -320,7 +320,7 @@ class MyTeamFragment : Fragment() {
                 playername,
                 playerole,
                 playerbirthday,
-                teamId
+                UserInfo.team_id
             )
 
         popupWindow.dismiss()

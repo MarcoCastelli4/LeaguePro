@@ -76,18 +76,18 @@ class MyLeagueFragment : Fragment() {
 
     private fun setupView(view: View) {
         val addLeagueContainer: ConstraintLayout = view.findViewById(R.id.add_league_container)
-        addLeagueContainer.visibility = if (UserType.isLeagueManager) View.VISIBLE else View.GONE
+        addLeagueContainer.visibility = if (UserInfo.isLeagueManager) View.VISIBLE else View.GONE
 
         setupFirebase()
         setupLeagueRecyclerView(view)
 
         // load league create by league manager
-        if (UserType.isLeagueManager){
+        if (UserInfo.isLeagueManager){
             fetchLeaguesFromDatabase()
         }
 
         // TODO load league that team has subscribe
-        if (UserType.isLeagueManager==false){
+        if (UserInfo.isLeagueManager==false){
             fetchTeamLeaguesFromDatabase()
         }
         val addLeagueIcon: ImageView = view.findViewById(R.id.add_league_icon)
@@ -135,10 +135,9 @@ class MyLeagueFragment : Fragment() {
     }
 
     private fun fetchTeamLeaguesFromDatabase() {
-        val currentUserId = mAuth.currentUser?.uid
 
         // First, fetch all leagues associated with the current user's team
-        mDbRef.child("leagues_team").orderByChild("team_id").equalTo(currentUserId)
+        mDbRef.child("leagues_team").orderByChild("team_id").equalTo(UserInfo.team_id)
             .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(teamSnapshot: DataSnapshot) {
                     // Clear the current leagueList
@@ -181,7 +180,6 @@ class MyLeagueFragment : Fragment() {
                 }
             })
     }
-
 
     private fun showAddLeaguePopup(view: View) {
 
