@@ -2,6 +2,8 @@ package com.example.leaguepro
 
 import android.app.Activity
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -42,6 +44,7 @@ class MyLeagueFragment : Fragment() {
     private lateinit var edtleague_restrictions: EditText
     private lateinit var edtleague_playingPeriod: TextView
     private lateinit var edtleague_MaxTeamNumber:EditText
+    private lateinit var searchView: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,6 +75,7 @@ class MyLeagueFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
         setupView(view)
     }
 
@@ -87,13 +91,25 @@ class MyLeagueFragment : Fragment() {
             fetchLeaguesFromDatabase()
         }
 
-        // TODO load league that team has subscribe
+        // load league that team has subscribe
         if (UserInfo.isLeagueManager==false){
             fetchTeamLeaguesFromDatabase()
         }
         val addLeagueIcon: ImageView = view.findViewById(R.id.add_league_icon)
         addLeagueIcon.setOnClickListener {
             showAddLeaguePopup(view) }
+
+        // Inizializza il SearchView
+        searchView = view.findViewById(R.id.search_bar)
+        searchView.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable?) {
+                filter(s.toString())
+            }
+        })
 
     }
 
@@ -390,4 +406,15 @@ class MyLeagueFragment : Fragment() {
             Toast.makeText(context, "Failed to generate unique key", Toast.LENGTH_SHORT).show()
         }
     }
+
+    private fun filter(text: String) {
+        val filteredList = ArrayList<League>()
+        leagueList.forEach {
+            if (it.name?.contains(text, ignoreCase = true) == true) {
+                filteredList.add(it)
+            }
+        }
+        adapter.setData(filteredList)
+    }
+
 }

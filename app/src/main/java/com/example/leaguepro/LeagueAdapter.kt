@@ -27,7 +27,7 @@ import java.util.Locale
 // LeagueAdapter è collegato al layout league_item
 class LeagueAdapter(
     val context: Context,
-    val leagueList: ArrayList<League>,
+    var leagueList: ArrayList<League>,
     val dbRef: DatabaseReference,
     val mAuth: FirebaseAuth,
     val fromAllLeague: Boolean
@@ -85,6 +85,7 @@ class LeagueAdapter(
         // Mostra la possibilità di cancellare se sono in MyLeague
         if (fromAllLeague) {
             holder.binButton.visibility = View.GONE
+
         } else {
             holder.binButton.setOnClickListener {
                 showConfirmationDialog(currentLeague)
@@ -95,7 +96,6 @@ class LeagueAdapter(
             showLeagueInfoPopup(currentLeague)
         }
     }
-
 
     private fun showConfirmationDialog(league: League) {
         val builder = AlertDialog.Builder(context, R.style.CustomAlertDialog)
@@ -169,29 +169,44 @@ class LeagueAdapter(
                     }
                 })
             } else {
-                Toast.makeText(context, "Cannot unsubscribe because the league has already started!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Cannot unsubscribe because the league has already started!", Toast.LENGTH_LONG).show()
             }
         } catch (e: Exception) {
             Toast.makeText(context, "Error parsing date: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
     private fun removeLeagueFromDatabase(league: League) {
-        // Usa leagueId per trovare e rimuovere la league dal database
-        dbRef.child("leagues").child(league.uid!!).removeValue().addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                // Rimuovi l'elemento dalla lista locale
-                leagueList.remove(league)
-                // Notifica l'adapter della rimozione
-                 notifyDataSetChanged()
-                // Notifica l'adapter del cambiamento della dimensione della lista
-                // notifyItemRangeChanged(position, leagueList.size)
-                Toast.makeText(context, "League deleted!", Toast.LENGTH_SHORT).show()
-                // Opzionalmente, naviga al MyLeagueFragment o esegui altre azioni
-            } else {
-                Toast.makeText(context, "Error in league deletion", Toast.LENGTH_SHORT).show()
+        val leagueId = league.uid!!
+        val leaguesTeamRef = dbRef.child("leagues_team")
+
+        // Verifica se ci sono team associati a questa lega
+        leaguesTeamRef.orderByChild("league_id").equalTo(leagueId).addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    // Ci sono team associati a questa lega, quindi non possiamo eliminarla
+                    Toast.makeText(context, "Cannot delete league with registered teams!", Toast.LENGTH_LONG).show()
+                } else {
+                    // Nessun team è associato a questa lega, quindi possiamo eliminarla
+                    dbRef.child("leagues").child(leagueId).removeValue().addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            // Rimuovi l'elemento dalla lista locale
+                            leagueList.remove(league)
+                            // Notifica l'adapter della rimozione
+                            notifyDataSetChanged()
+                            Toast.makeText(context, "League deleted!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Error in league deletion", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
             }
-        }
+
+            override fun onCancelled(error: DatabaseError) {
+                Toast.makeText(context, "Error checking league teams: ${error.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
+
     private fun showLeagueInfoPopup(league: League) {
         val popupView = LayoutInflater.from(context).inflate(R.layout.league_more, null)
         val popupWindow = PopupWindow(
@@ -240,6 +255,7 @@ class LeagueAdapter(
                 }
             }
 
+
             override fun onCancelled(error: DatabaseError) {
                 Toast.makeText(context, "Failed to check leagues_team: ${error.message}", Toast.LENGTH_SHORT).show()
             }
@@ -269,7 +285,6 @@ class LeagueAdapter(
             popupWindow.dismiss()
         }
     }
-
     private fun addTeamToALeague(league: League, teamUid: String) {
         // Verifica che la data di inizio del torneo sia maggiore di oggi
         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -303,30 +318,37 @@ class LeagueAdapter(
                                     .addOnSuccessListener {
                                         // Gestione successo
                                         Toast.makeText(context, "Team joined league successfully!", Toast.LENGTH_SHORT).show()
-                                        // TODO: Spostarsi in MyLeague e aggiornare il menu
+
+                                        notifyDataSetChanged()
                                     }
                                     .addOnFailureListener { e ->
                                         // Gestione fallimento
                                         Toast.makeText(context, "Failed to join league: ${e.message}", Toast.LENGTH_SHORT).show()
                                     }
                             } else {
-                                Toast.makeText(context, "Failed to generate a unique key for the league-team association", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Failed to generate a unique key for the league-team association", Toast.LENGTH_LONG).show()
                             }
                         } else {
-                            Toast.makeText(context, "Cannot join league because it has reached the maximum number of teams!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Cannot join league because it has reached the maximum number of teams!", Toast.LENGTH_LONG).show()
                         }
                     }
 
                     override fun onCancelled(error: DatabaseError) {
-                        Toast.makeText(context, "Failed to check league team count: ${error.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Failed to check league team count: ${error.message}", Toast.LENGTH_LONG).show()
                     }
                 })
             } else {
-                Toast.makeText(context, "Cannot join league because the league has already started!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Cannot join league because the league has already started!", Toast.LENGTH_LONG).show()
             }
         } catch (e: ParseException) {
             Toast.makeText(context, "Error parsing date: ${e.message}", Toast.LENGTH_SHORT).show()
         }
+    }
+
+
+    fun setData(newLeagueList: ArrayList<League>) {
+        leagueList = newLeagueList
+        notifyDataSetChanged()
     }
 
 

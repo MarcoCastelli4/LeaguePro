@@ -2,11 +2,14 @@ package com.example.leaguepro
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -37,6 +40,7 @@ class AllLeagueFragment : Fragment() {
     private lateinit var mDbRef: DatabaseReference
     private lateinit var mAuth: FirebaseAuth
     private lateinit var binding: FragmentAllLeagueBinding
+    private lateinit var searchView: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,6 +95,18 @@ class AllLeagueFragment : Fragment() {
         leagueRecyclerView.adapter = adapter
 
 
+        // Inizializza il SearchView
+        searchView = view.findViewById(R.id.search_bar)
+        searchView.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable?) {
+                filter(s.toString())
+            }
+        })
+
 
         mDbRef.child("leagues").addValueEventListener(object: ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -111,5 +127,15 @@ class AllLeagueFragment : Fragment() {
             }
         })
 
+    }
+
+    private fun filter(text: String) {
+        val filteredList = ArrayList<League>()
+        leagueList.forEach {
+            if (it.name?.contains(text, ignoreCase = true) == true) {
+                filteredList.add(it)
+            }
+        }
+        adapter.setData(filteredList)
     }
 }
