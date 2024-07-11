@@ -28,7 +28,6 @@ class Login : AppCompatActivity() {
     private lateinit var mDbRef: DatabaseReference
 
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AndroidThreeTen.init(this)

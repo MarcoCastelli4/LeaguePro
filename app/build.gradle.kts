@@ -55,6 +55,9 @@ android {
 
 dependencies {
 
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.9")
+
     implementation ("com.jakewharton.threetenabp:threetenabp:1.3.1")
 
     implementation(platform("androidx.compose:compose-bom:2024.06.00"))

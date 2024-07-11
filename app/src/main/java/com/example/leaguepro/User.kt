@@ -1,5 +1,13 @@
 package com.example.leaguepro
 
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+
+private lateinit var mDbRef: DatabaseReference
+
 class User {
     var userType: String?=null
     var fullname: String? = null
@@ -15,4 +23,7 @@ class User {
         this.uid = uid
         this.userType=userType
     }
+
+
+
 }

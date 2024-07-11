@@ -2,15 +2,15 @@ package com.example.leaguepro
 
 import android.content.Intent
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import com.google.firebase.auth.EmailAuthProvider
@@ -20,8 +20,11 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import java.io.File
-import java.io.IOException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -39,20 +42,20 @@ class ProfileFragment : Fragment() {
 
     private lateinit var logout: Button
     private lateinit var mAuth: FirebaseAuth
-    private lateinit var user_type:TextView
-    private lateinit var fullname:TextView
-    private lateinit var email:TextView
-    private lateinit var change_psw:Button
-    private lateinit var editProfile:ImageView
+    private lateinit var user_type: TextView
+    private lateinit var fullname: TextView
+    private lateinit var email: TextView
+    private lateinit var change_psw: Button
+    private lateinit var editProfile: ImageView
     private lateinit var mDbRef: DatabaseReference
 
     private lateinit var editFullname: EditText
     private lateinit var editEmail: EditText
     private lateinit var save: Button
-    private lateinit var cancel:Button
+    private lateinit var cancel: Button
     private lateinit var txt_psw: TextView
     private lateinit var confirm_psw: EditText
-
+    private lateinit var edtUserType: Spinner
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,30 +121,46 @@ class ProfileFragment : Fragment() {
         change_psw = view.findViewById(R.id.reset_password_button)
         editProfile = view.findViewById(R.id.edt_button)
         save = view.findViewById(R.id.save_button)
-        cancel=view.findViewById(R.id.cancel_button)
+        cancel = view.findViewById(R.id.cancel_button)
         editFullname = view.findViewById(R.id.edit_fullname)
         editEmail = view.findViewById(R.id.edit_email)
+        edtUserType = view.findViewById(R.id.user_type)
+        txt_psw = view.findViewById(R.id.textView3)
+        confirm_psw = view.findViewById(R.id.confirm_psw)
 
-        txt_psw=view.findViewById(R.id.textView3)
-        confirm_psw=view.findViewById(R.id.confirm_psw)
+
+        context?.let {
+            ArrayAdapter.createFromResource(
+                it,
+                R.array.user_types,
+                android.R.layout.simple_spinner_item
+            ).also { adapter ->
+                // Specify the layout to use when the list of choices appears.
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                // Apply the adapter to the spinner.
+                edtUserType.adapter = adapter
+            }
+        }
+
 
         // Fetch user data from Firebase and populate the UI
         val currentUser = mAuth.currentUser
         if (currentUser != null) {
-            mDbRef.child("users").child(currentUser.uid).addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val user = snapshot.getValue(User::class.java)
-                    if (user != null) {
-                        user_type.text = user.userType
-                        fullname.text = user.fullname
-                        email.text = user.email
+            mDbRef.child("users").child(currentUser.uid)
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        val user = snapshot.getValue(User::class.java)
+                        if (user != null) {
+                            user_type.text = user.userType
+                            fullname.text = user.fullname
+                            email.text = user.email
+                        }
                     }
-                }
 
-                override fun onCancelled(error: DatabaseError) {
-                    // Handle possible errors.
-                }
-            })
+                   override fun onCancelled(error: DatabaseError) {
+                        // Handle possible errors.
+                    }
+                })
 
             change_psw.setOnClickListener {
                 val emailAddress = currentUser.email
@@ -149,9 +168,17 @@ class ProfileFragment : Fragment() {
                     mAuth.sendPasswordResetEmail(emailAddress)
                         .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
-                                Toast.makeText(context, "Check your email to reset password reset", Toast.LENGTH_LONG).show()
+                                Toast.makeText(
+                                    context,
+                                    "Check your email to reset password reset",
+                                    Toast.LENGTH_LONG
+                                ).show()
                             } else {
-                                Toast.makeText(context, "Failed to send password reset email.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "Failed to send password reset email.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         }
                 }
@@ -159,46 +186,48 @@ class ProfileFragment : Fragment() {
 
             editProfile.setOnClickListener {
                 toggleEditMode(true)
+
             }
 
             save.setOnClickListener {
                 val newName = editFullname.text.toString()
                 val newEmail = editEmail.text.toString()
-                val psw=confirm_psw.text.toString()
+                val psw = confirm_psw.text.toString()
+                val newUserType = edtUserType.selectedItem.toString()
 
-                if(!validateFields(newName,newEmail,psw)){
+                if (!validateFields(newName, newEmail, psw)) {
                     return@setOnClickListener
                 }
 
-                reauthenticateAndUpdateProfile(newName, newEmail, psw)
+                reauthenticateAndUpdateProfile(newUserType, newName, newEmail, psw)
             }
 
-            cancel.setOnClickListener{
+            cancel.setOnClickListener {
                 toggleEditMode(false)
             }
         }
     }
 
-    private fun validateFields(newName: String,newEmail: String, psw: String): Boolean
-    {
-        var valid=true
+    private fun validateFields(newName: String, newEmail: String, psw: String): Boolean {
+        var valid = true
         // Check if any of the fields are empty
         if (newName.isEmpty()) {
             editFullname.error = "Fullname is required"
-            valid=false
+            valid = false
         }
 
         if (newEmail.isEmpty()) {
             editEmail.error = "Email is required"
-            valid=false
+            valid = false
         }
 
         if (psw.isEmpty()) {
             confirm_psw.error = "Confirm password is required"
-            valid=false
+            valid = false
         }
         return valid
     }
+
     private fun toggleEditMode(enable: Boolean) {
         if (enable) {
             fullname.visibility = View.GONE
@@ -208,13 +237,16 @@ class ProfileFragment : Fragment() {
             editFullname.setText(fullname.text)
             editEmail.setText(email.text)
 
-            cancel.visibility=View.VISIBLE
+            cancel.visibility = View.VISIBLE
             save.visibility = View.VISIBLE
             editProfile.visibility = View.GONE
             change_psw.visibility = View.GONE
 
-            txt_psw.visibility=View.VISIBLE
-            confirm_psw.visibility=View.VISIBLE
+            txt_psw.visibility = View.VISIBLE
+            confirm_psw.visibility = View.VISIBLE
+
+            edtUserType.visibility = View.VISIBLE
+            user_type.visibility = View.GONE
 
 
         } else {
@@ -224,54 +256,100 @@ class ProfileFragment : Fragment() {
             editEmail.visibility = View.GONE
 
             save.visibility = View.GONE
-            cancel.visibility=View.GONE
+            cancel.visibility = View.GONE
 
             editProfile.visibility = View.VISIBLE
             change_psw.visibility = View.VISIBLE
 
-            txt_psw.visibility=View.GONE
-            confirm_psw.visibility=View.GONE
+            txt_psw.visibility = View.GONE
+            confirm_psw.visibility = View.GONE
+
+            edtUserType.visibility = View.GONE
+            user_type.visibility = View.VISIBLE
         }
     }
 
-    private fun reauthenticateAndUpdateProfile(newName: String, newEmail: String, password: String) {
-
-
+    private fun reauthenticateAndUpdateProfile(
+        newUserType: String,
+        newName: String,
+        newEmail: String,
+        password: String
+    ) {
         val currentUser = mAuth.currentUser
         if (currentUser != null && currentUser.email != null) {
             val credential = EmailAuthProvider.getCredential(currentUser.email!!, password)
             currentUser.reauthenticate(credential)
                 .addOnCompleteListener { reauthTask ->
                     if (reauthTask.isSuccessful) {
-                        currentUser.updateEmail(newEmail)
-                            .addOnCompleteListener { updateEmailTask ->
-                                if (updateEmailTask.isSuccessful) {
-                                    val userUpdates = mapOf(
-                                        "fullname" to newName,
-                                        "email" to newEmail
-                                    )
-                                    mDbRef.child("users").child(currentUser.uid).updateChildren(userUpdates)
-                                        .addOnCompleteListener { updateDbTask ->
-                                            if (updateDbTask.isSuccessful) {
-                                                fullname.text = newName
-                                                email.text = newEmail
-                                                toggleEditMode(false)
-                                            } else {
-                                                Toast.makeText(context, "Failed to update profile: ${updateDbTask.exception?.message}", Toast.LENGTH_LONG).show()
-                                            }
+                        CoroutineScope(Dispatchers.Main).launch {
+                            val hasTeam = withContext(Dispatchers.IO) { hasTeam(currentUser.uid) }
+                            val hasLeagues = withContext(Dispatchers.IO) { hasLeagues(currentUser.uid) }
+
+                            if ((!UserInfo.isLeagueManager && !hasTeam) || (UserInfo.isLeagueManager && !hasLeagues)) {
+                                currentUser.updateEmail(newEmail)
+                                    .addOnCompleteListener { updateEmailTask ->
+                                        if (updateEmailTask.isSuccessful) {
+                                            val userUpdates = mapOf(
+                                                "userType" to newUserType,
+                                                "fullname" to newName,
+                                                "email" to newEmail
+                                            )
+                                            mDbRef.child("users").child(currentUser.uid)
+                                                .updateChildren(userUpdates)
+                                                .addOnCompleteListener { updateDbTask ->
+                                                    if (updateDbTask.isSuccessful) {
+                                                        fullname.text = newName
+                                                        email.text = newEmail
+                                                        UserInfo.isLeagueManager = newUserType == "League Manager"
+                                                        toggleEditMode(false)
+                                                    } else {
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Failed to update profile: ${updateDbTask.exception?.message}",
+                                                            Toast.LENGTH_LONG
+                                                        ).show()
+                                                    }
+                                                }
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                "Failed to update email: ${updateEmailTask.exception?.message}",
+                                                Toast.LENGTH_LONG
+                                            ).show()
                                         }
-                                } else {
-                                    Toast.makeText(context, "Failed to update email: ${updateEmailTask.exception?.message}", Toast.LENGTH_LONG).show()
-                                }
+                                    }
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Cannot change user type while managing teams or leagues",
+                                    Toast.LENGTH_LONG
+                                ).show()
                             }
+                        }
                     } else {
-                        Toast.makeText(context, "Reauthentication failed: ${reauthTask.exception?.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            context,
+                            "Reauthentication failed: ${reauthTask.exception?.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
         }
     }
 
+    suspend fun hasTeam(userId: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            val teamsRef = FirebaseDatabase.getInstance().getReference("teams")
+            val snapshot = teamsRef.orderByChild("team_manager").equalTo(userId).get().await()
+            snapshot.exists()
+        }
+    }
 
-
-
+    suspend fun hasLeagues(userId: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            val leaguesRef = FirebaseDatabase.getInstance().getReference("leagues")
+            val snapshot = leaguesRef.orderByChild("leagueManager").equalTo(userId).get().await()
+            snapshot.exists()
+        }
+    }
 }
