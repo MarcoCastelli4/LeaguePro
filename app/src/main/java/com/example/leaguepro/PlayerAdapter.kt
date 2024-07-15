@@ -1,6 +1,7 @@
 package com.example.leaguepro
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -14,13 +15,17 @@ import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.DateValidatorPointBackward
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.ValueEventListener
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -60,7 +65,62 @@ class PlayerAdapter(
         holder.edit.setOnClickListener {
             showEditPlayerPopup(holder.itemView, currentPlayer)
         }
+
+        holder.delete.setOnClickListener{
+            showDeleteConfirmationDialog(currentPlayer)
+        }
     }
+
+    private fun showDeleteConfirmationDialog(player: Player) {
+        val builder = AlertDialog.Builder(context, R.style.CustomAlertDialog)
+        builder.setTitle("Delete Player")
+            .setMessage("Are you sure you want to delete ${player.name} from your team?")
+            .setPositiveButton("Delete") { dialog, _ ->
+                checkTeamInLeagueAndDeletePlayer(player)
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .create()
+            .show()
+    }
+
+    private fun checkTeamInLeagueAndDeletePlayer(player: Player) {
+        val leaguesTeamRef = dbRef.child("leagues_team")
+        leaguesTeamRef.orderByChild("team_id").equalTo(UserInfo.team_id).addListenerForSingleValueEvent(object :
+            ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    Toast.makeText(context, "Cannot delete player from a team that has joined a league!", Toast.LENGTH_LONG).show()
+                } else {
+                    deletePlayerFromTeam(player)
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Toast.makeText(context, "Error checking league teams: ${error.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    private fun deletePlayerFromTeam(player: Player) {
+        val teamId = UserInfo.team_id
+        val playerUid = player.uid
+
+        if (teamId != null && playerUid != null) {
+            dbRef.child("teams").child(teamId).child("players").child(playerUid).removeValue()
+                .addOnSuccessListener {
+                    Toast.makeText(context, "Player deleted successfully!", Toast.LENGTH_SHORT).show()
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(context, "Failed to delete player: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+        } else {
+            Toast.makeText(context, "Invalid team or player ID", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 
     private fun showEditPlayerPopup(view: View, currentPlayer: Player) {
         (context as Activity).findViewById<RecyclerView>(R.id.playersRecyclerView).visibility = View.GONE
