@@ -34,7 +34,7 @@
             android:textStyle="bold" />
 
         <ImageView
-            android:id="@+id/bin"
+            android:id="@+id/delete"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_alignParentEnd="true"
@@ -75,7 +75,6 @@
             android:textSize="20sp" />
     </RelativeLayout>
 
-    <!-- Prize league -->
     <RelativeLayout
         android:id="@+id/lay_birthday"
         android:layout_width="match_parent"

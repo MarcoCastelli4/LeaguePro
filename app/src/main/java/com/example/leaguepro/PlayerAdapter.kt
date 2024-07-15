@@ -1,13 +1,29 @@
 package com.example.leaguepro
 
+import android.app.Activity
 import android.content.Context
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.PopupWindow
+import android.widget.Spinner
 import android.widget.TextView
+import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.datepicker.CalendarConstraints
+import com.google.android.material.datepicker.DateValidatorPointBackward
+import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class PlayerAdapter(
     val context: Context,
@@ -20,8 +36,8 @@ class PlayerAdapter(
         val player_name: TextView = itemView.findViewById(R.id.player_name)
         val player_role: TextView = itemView.findViewById(R.id.player_role)
         val player_birthday: TextView = itemView.findViewById(R.id.player_birthday)
-        //val team_name: TextView = itemView.findViewById(R.id.team_name)
-
+        val edit: ImageView = itemView.findViewById(R.id.edit)
+        val delete: ImageView= itemView.findViewById(R.id.delete)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PlayerViewHolder {
@@ -38,6 +54,142 @@ class PlayerAdapter(
         holder.player_name.text = currentPlayer.name
         holder.player_role.text = currentPlayer.role
         holder.player_birthday.text = currentPlayer.birthday
+
+
+        // hold edit button
+        holder.edit.setOnClickListener {
+            showEditPlayerPopup(holder.itemView, currentPlayer)
+        }
+    }
+
+    private fun showEditPlayerPopup(view: View, currentPlayer: Player) {
+        (context as Activity).findViewById<RecyclerView>(R.id.playersRecyclerView).visibility = View.GONE
+
+        val inflater = LayoutInflater.from(context)
+        val popupView = inflater.inflate(R.layout.add_player, null)
+        val popupWindow = PopupWindow(
+            popupView,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            true
+        )
+        // Set the title to "Edit Player"
+        val titleTextView: TextView = popupView.findViewById(R.id.add_player_title)
+        titleTextView.text = "Edit Player"
+
+        popupWindow.setOnDismissListener {
+            (context as Activity).findViewById<RecyclerView>(R.id.playersRecyclerView).visibility = View.VISIBLE
+        }
+
+        popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0)
+        initializePopupFields(popupView,currentPlayer)
+        setupPopupListeners(popupView, popupWindow,currentPlayer)
+    }
+
+    private fun initializePopupFields(popupView: View, player: Player) {
+        val edtPlayerName = popupView.findViewById<EditText>(R.id.edt_player_name)
+        val edtPlayerRole = popupView.findViewById<Spinner>(R.id.edt_player_role)
+        val edtPlayerBirthday = popupView.findViewById<TextView>(R.id.edt_player_birthday)
+
+        edtPlayerName.setText(player.name)
+        edtPlayerBirthday.text = player.birthday
+
+        ArrayAdapter.createFromResource(
+            context,
+            R.array.role_types,
+            android.R.layout.simple_spinner_item
+        ).also { adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            edtPlayerRole.adapter = adapter
+        }
+
+        val rolesArray = context.resources.getStringArray(R.array.role_types)
+        val roleIndex = rolesArray.indexOf(player.role)
+        if (roleIndex >= 0) {
+            edtPlayerRole.setSelection(roleIndex)
+        }
+
+        popupView.findViewById<ImageView>(R.id.btn_birthday).setOnClickListener {
+            datePickerDialog(edtPlayerBirthday)
+        }
+    }
+
+    private fun setupPopupListeners(popupView: View, popupWindow: PopupWindow, player: Player) {
+        popupView.findViewById<ImageView>(R.id.btn_close).setOnClickListener {
+            popupWindow.dismiss()
+        }
+
+        popupView.findViewById<Button>(R.id.btn_save).setOnClickListener {
+            val playerName = popupView.findViewById<EditText>(R.id.edt_player_name)
+            val playerRole = popupView.findViewById<Spinner>(R.id.edt_player_role).selectedItem.toString()
+            val playerBirthday = popupView.findViewById<TextView>(R.id.edt_player_birthday)
+
+            if (!validateFields(
+                    playerName,
+                    playerBirthday
+                )
+            ) {
+                return@setOnClickListener
+            }
+
+            val updatedPlayer = Player(
+                uid = player.uid,
+                name = playerName.text.toString(),
+                role = playerRole,
+                birthday = playerBirthday.text.toString()
+            )
+            updatePlayerInDatabase(updatedPlayer)
+            popupWindow.dismiss()
+        }
+    }
+
+    private fun validateFields(playername: EditText?, playerbirthday: TextView?): Boolean {
+        var valid = true
+        // Check each field and set an error message if it's empty
+        if (playername != null) {
+            if (playername.text.toString().isEmpty()) {
+                playername.error = "Please enter player name"
+                valid = false
+            }
+        }
+        if (playerbirthday != null) {
+            if (!isValidDateRange(playerbirthday.text.toString())) {
+                    playerbirthday.error = "Please select a player birthday"
+                    valid = false
+            }
+        }
+        return valid
+    }
+    private fun isValidDateRange(dateRange: String): Boolean {
+        // Define the regex pattern for the date range
+        val dateRangePattern = Regex("""\b\d{2}/\d{2}/\d{4}\b""")
+        // Check if the input string matches the pattern
+        return dateRangePattern.matches(dateRange)
+    }
+    private fun updatePlayerInDatabase(player: Player) {
+        val teamId = UserInfo.team_id
+        if (teamId != null) {
+            player.uid?.let { dbRef.child("teams").child(teamId).child("players").child(it).setValue(player) }
+        }
+    }
+    private fun datePickerDialog(edtPlayingPeriod: TextView) {
+        val today = MaterialDatePicker.todayInUtcMilliseconds()
+        val constraintsBuilder = CalendarConstraints.Builder()
+            .setValidator(DateValidatorPointBackward.now()) // Consenti solo date nel passato
+
+        val builder = MaterialDatePicker.Builder.datePicker() // Usa il DatePicker singolo per la data di nascita
+            .setTitleText("Select birthday")
+            .setCalendarConstraints(constraintsBuilder.build())
+            .setTheme(R.style.CustomDatePicker) // Usa il tema personalizzato
+
+        val datePicker = builder.build()
+        datePicker.addOnPositiveButtonClickListener { selection ->
+            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH)
+            val selectedDateString = sdf.format(Date(selection ?: 0))
+            edtPlayingPeriod.text = selectedDateString
+        }
+        datePicker.show((context as FragmentActivity).supportFragmentManager, "date_picker")
+
     }
 
 }
