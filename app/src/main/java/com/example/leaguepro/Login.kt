@@ -1,5 +1,6 @@
 package com.example.leaguepro;
 
+import android.content.Context
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -26,7 +27,7 @@ class Login : AppCompatActivity() {
     private lateinit var mAuth: FirebaseAuth
     private lateinit var edtPswButton: ImageView
     private lateinit var mDbRef: DatabaseReference
-
+    private lateinit var btnGuest: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,8 +39,18 @@ class Login : AppCompatActivity() {
         btnLogin = findViewById(R.id.login_button)
         btnSignUp = findViewById(R.id.signup_text)
         edtPswButton = findViewById(R.id.psw_eye_button)
+        btnGuest=findViewById(R.id.btnGuest)
         mAuth = FirebaseAuth.getInstance()
         mDbRef = FirebaseDatabase.getInstance().getReference()
+
+        btnGuest.setOnClickListener {
+            val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+            val editor = sharedPreferences.edit()
+            editor.putString("user_type", "guest")
+            editor.apply()
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+        }
 
         btnSignUp.setOnClickListener {
             val intent = Intent(this, SignUp::class.java)
@@ -90,6 +101,11 @@ class Login : AppCompatActivity() {
 
                                     // Update userType global
                                     UserInfo.isLeagueManager = type== "League Manager"
+
+                                    val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+                                    val editor = sharedPreferences.edit()
+                                    editor.putString("user_type", type)
+                                    editor.apply()
 
                                     // Update team_id global
                                     mAuth.currentUser?.uid?.let { it1 -> findTeamId(it1) }

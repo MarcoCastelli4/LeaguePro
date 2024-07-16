@@ -82,8 +82,7 @@
             android:id="@+id/text_below_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Not a member yet?"
-            android:textColor="#000000" />
+            android:text="Not a member yet?" />
 
         <TextView
             android:id="@+id/signup_text"
@@ -91,10 +90,28 @@
             android:layout_height="wrap_content"
             android:layout_marginLeft="5dp"
             android:text="Sign Up"
-            android:textColor="#246EE9"
+            android:textColor="@color/primary"
             android:textStyle="bold"
             android:clickable="true"
             android:focusable="true" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="5dp"
+            android:text="or continue as a" />
+
+        <TextView
+            android:id="@+id/btnGuest"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="5dp"
+            android:text="Guest"
+            android:textColor="@color/primary"
+            android:textStyle="bold"
+            android:clickable="true"
+            android:focusable="true" />
+
     </LinearLayout>
 
 

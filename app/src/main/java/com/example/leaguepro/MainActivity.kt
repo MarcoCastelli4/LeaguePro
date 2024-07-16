@@ -1,14 +1,11 @@
 package com.example.leaguepro
 
-import android.content.Intent
+import android.content.Context
 import android.os.Bundle
-import android.view.MenuItem
-import android.view.View
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.Fragment
 import com.example.leaguepro.databinding.ActivityMainBinding
 import com.google.android.material.bottomnavigation.BottomNavigationView
-
 
 class MainActivity : AppCompatActivity() {
 
@@ -19,18 +16,44 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Imposta il frammento iniziale
-        NavigationManager.replaceFragment(this, MyLeagueFragment())
-        binding.bottomNavigationView.post {
-            val item = binding.bottomNavigationView.menu.findItem(R.id.myleague)
-            NavigationManager.showIndicator(this, binding, item)
+        // Load the appropriate menu based on user type
+        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        val userType = sharedPreferences.getString("user_type", "default_type")
+
+        val bottomNavigationView: BottomNavigationView = binding.bottomNavigationView
+
+        when (userType) {
+            "League Manager" -> {
+                bottomNavigationView.inflateMenu(R.menu.league_nav_menu)
+            }
+            "Team Manager" -> {
+                bottomNavigationView.inflateMenu(R.menu.team_nav_menu)
+            }
+            else -> {
+                bottomNavigationView.inflateMenu(R.menu.visitor_nav_menu) // Fallback menu
+            }
         }
 
-        // Imposta il listener per la selezione degli elementi nel menu di navigazione in basso
-        binding.bottomNavigationView.setOnItemSelectedListener { item ->
+        if (userType.equals("League Manager") or userType.equals("Team Manager")) {
+            // Set the initial fragment
+            NavigationManager.replaceFragment(this, MyLeagueFragment())
+            bottomNavigationView.post {
+                val item = bottomNavigationView.menu.findItem(R.id.myleague)
+                NavigationManager.showIndicator(this, binding, item)
+            }
+        }
+        else{
+            NavigationManager.replaceFragment(this, AllLeagueFragment())
+            bottomNavigationView.post {
+                val item = bottomNavigationView.menu.findItem(R.id.allLeague)
+                NavigationManager.showIndicator(this, binding, item)
+            }
+        }
+
+        // Set listener for bottom navigation item selection
+        bottomNavigationView.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.myleague -> {
-                    // Esempio di utilizzo di NavigationManager
                     NavigationManager.replaceFragment(this, MyLeagueFragment())
                     NavigationManager.showIndicator(this, binding, item)
                     true
@@ -50,36 +73,12 @@ class MainActivity : AppCompatActivity() {
                     NavigationManager.showIndicator(this, binding, item)
                     true
                 }
+
                 else -> false
             }
         }
 
-        // Aggiorna l'indicatore iniziale
-        binding.bottomNavigationView.selectedItemId = R.id.myleague
+        // Set the initial selected item
+        bottomNavigationView.selectedItemId = R.id.myleague
     }
-
-    /*
-    fun replaceFragment(fragment: Fragment) {
-        val fragmentManager = supportFragmentManager
-        val fragmentTransaction = fragmentManager.beginTransaction()
-        fragmentTransaction.replace(R.id.frame_layout, fragment)
-        fragmentTransaction.commit()
-    }
-
-    fun showIndicator(item: MenuItem) {
-        // Ottieni la View associata all'elemento di menu selezionato
-        val itemView = binding.bottomNavigationView.findViewById<View>(item.itemId)
-        itemView.post {
-            // Calcola la larghezza e la posizione della View dell'elemento di menu selezionato
-            val width = itemView.width
-            val x = itemView.left
-
-            // Aggiorna la larghezza e la posizione della barra di selezione
-            binding.selectionIndicator.layoutParams.width = width
-            binding.selectionIndicator.x = x.toFloat()
-            binding.selectionIndicator.visibility = View.VISIBLE
-            binding.selectionIndicator.requestLayout()
-        }
-    }*/
-
 }

@@ -25,7 +25,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:itemIconTint="@color/primary"
         app:itemTextColor="@color/primary"
-        app:menu="@menu/bottom_nav_menu" />
+        app:labelVisibilityMode="labeled"/>
 
     <View
         android:id="@+id/selection_indicator"
