@@ -44,10 +44,9 @@ class Login : AppCompatActivity() {
         mDbRef = FirebaseDatabase.getInstance().getReference()
 
         btnGuest.setOnClickListener {
-            val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-            val editor = sharedPreferences.edit()
-            editor.putString("user_type", "guest")
-            editor.apply()
+            UserInfo.logged=false
+            UserInfo.team_id=""
+            UserInfo.userType=""
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
         }
@@ -98,17 +97,11 @@ class Login : AppCompatActivity() {
                             .addOnSuccessListener { document ->
                                 if (document != null && document.exists()) {
                                     val type = document.child("userType").getValue(String::class.java)
-
                                     // Update userType global
-                                    UserInfo.isLeagueManager = type== "League Manager"
-
-                                    val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-                                    val editor = sharedPreferences.edit()
-                                    editor.putString("user_type", type)
-                                    editor.apply()
-
-                                    // Update team_id global
-                                    mAuth.currentUser?.uid?.let { it1 -> findTeamId(it1) }
+                                    UserInfo.userType = type
+                                    UserInfo.logged=true
+                                    if (type==getString(R.string.TeamManager)){
+                                    mAuth.currentUser?.uid?.let { it1 -> findTeamId(it1)} }
 
                                     // Navigate to MainActivity
                                     val intent = Intent(this@Login, MainActivity::class.java)

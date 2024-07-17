@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">LeaguePro</string>
 
+    <string name="LeagueManager">League Manager</string>
+    <string name="TeamManager">Team Manager</string>
     <string-array name="user_types">
         <item>Team Manager</item>
         <item>League Manager</item>

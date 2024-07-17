@@ -81,18 +81,18 @@ class MyLeagueFragment : Fragment() {
 
     private fun setupView(view: View) {
         val addLeagueContainer: ConstraintLayout = view.findViewById(R.id.add_league_container)
-        addLeagueContainer.visibility = if (UserInfo.isLeagueManager) View.VISIBLE else View.GONE
+        addLeagueContainer.visibility = if (UserInfo.userType==getString(R.string.LeagueManager)) View.VISIBLE else View.GONE
 
         setupFirebase()
         setupLeagueRecyclerView(view)
 
         // load league create by league manager
-        if (UserInfo.isLeagueManager){
+        if (UserInfo.userType==getString(R.string.LeagueManager)){
             fetchLeaguesFromDatabase()
         }
 
         // load league that team has subscribe
-        if (UserInfo.isLeagueManager==false){
+        if (UserInfo.userType==getString(R.string.TeamManager)){
             fetchTeamLeaguesFromDatabase()
         }
         val addLeagueIcon: ImageView = view.findViewById(R.id.add_league_icon)
@@ -279,7 +279,7 @@ class MyLeagueFragment : Fragment() {
         val leagueprize = edtleague_prize.text.toString()
         val leaguerestrictions = edtleague_restrictions.text.toString()
         val leagueplayingPeriod = edtleague_playingPeriod.text.toString()
-        val leagueMaxTeamNumber= edtleague_MaxTeamNumber.text.toString().toFloat()
+        val leagueMaxTeamNumber= edtleague_MaxTeamNumber.text.toString().toFloatOrNull()
 
         if (!validateFields(
                 leaguename,
@@ -362,11 +362,10 @@ class MyLeagueFragment : Fragment() {
             valid = false
         }
 
-        if (leagueMaxTeamNumber != null) {
-            if (leagueMaxTeamNumber < 4) {
-                edtleague_MaxTeamNumber.error = "Please enter a number greater that 4"
-                valid = false
-            }
+
+        if (leagueMaxTeamNumber == null || leagueMaxTeamNumber < 4) {
+            edtleague_MaxTeamNumber.error = "Please enter a number greater than 4"
+            valid = false
         }
 
         return valid

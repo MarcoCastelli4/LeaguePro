@@ -100,7 +100,7 @@ class LeagueAdapter(
     private fun showConfirmationDialog(league: League) {
         val builder = AlertDialog.Builder(context, R.style.CustomAlertDialog)
         // Leaugue manager cancella il torneo
-        if (UserInfo.isLeagueManager) {
+        if (UserInfo.userType==context.getString(R.string.LeagueManager)) {
             builder.setTitle("Delete confirm")
             builder.setMessage("Are you sure to delete ${league.name} and all info connected?")
 
@@ -114,7 +114,7 @@ class LeagueAdapter(
             }
         }
         // Team managaer si disiiscrive al torneo
-        if (!UserInfo.isLeagueManager){
+        if (UserInfo.userType==context.getString(R.string.TeamManager)){
             builder.setTitle("Unsubscribe confirm")
             builder.setMessage("Are you sure to unsubscribe from ${league.name}?")
 
@@ -225,7 +225,6 @@ class LeagueAdapter(
         popupWindow.showAtLocation(popupView, Gravity.CENTER, 0, 0)
 
         val play: Button = popupView.findViewById(R.id.join_button)
-        val isTeamManager = !UserInfo.isLeagueManager
 
         val leagueId = league.uid
         val leaguesTeamRef = dbRef.child("leagues_team")
@@ -248,10 +247,8 @@ class LeagueAdapter(
                 }
 
                 // Determina la visibilità del pulsante "play" in base alle condizioni
-                if (!UserInfo.team_id.equals("") && !isLeagueInTeamLeagues && numberOfTeams < maxTeams.toFloat()) {
+                if (UserInfo.userType==context.getString(R.string.TeamManager) && !UserInfo.team_id.equals("") && !isLeagueInTeamLeagues && numberOfTeams < maxTeams.toFloat()) {
                     play.visibility = View.VISIBLE
-                } else {
-                    play.visibility = View.GONE
                 }
             }
 

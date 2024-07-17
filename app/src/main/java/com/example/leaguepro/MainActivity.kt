@@ -1,11 +1,14 @@
 package com.example.leaguepro
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.leaguepro.databinding.ActivityMainBinding
 import com.google.android.material.bottomnavigation.BottomNavigationView
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -16,17 +19,13 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Load the appropriate menu based on user type
-        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-        val userType = sharedPreferences.getString("user_type", "default_type")
-
         val bottomNavigationView: BottomNavigationView = binding.bottomNavigationView
 
-        when (userType) {
-            "League Manager" -> {
+        when (UserInfo.userType) {
+            getString(R.string.LeagueManager) -> {
                 bottomNavigationView.inflateMenu(R.menu.league_nav_menu)
             }
-            "Team Manager" -> {
+            getString(R.string.TeamManager) -> {
                 bottomNavigationView.inflateMenu(R.menu.team_nav_menu)
             }
             else -> {
@@ -34,7 +33,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (userType.equals("League Manager") or userType.equals("Team Manager")) {
+        // Load first page
+        if (UserInfo.logged) {
             // Set the initial fragment
             NavigationManager.replaceFragment(this, MyLeagueFragment())
             bottomNavigationView.post {
@@ -71,6 +71,13 @@ class MainActivity : AppCompatActivity() {
                 R.id.profile -> {
                     NavigationManager.replaceFragment(this, ProfileFragment())
                     NavigationManager.showIndicator(this, binding, item)
+                    true
+                }
+
+                R.id.goBack ->{
+                    val intent = Intent(this, Login::class.java)
+                    startActivity(intent)
+                    finish()
                     true
                 }
 

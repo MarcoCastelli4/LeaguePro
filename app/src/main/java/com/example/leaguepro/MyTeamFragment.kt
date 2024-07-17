@@ -89,7 +89,7 @@ class MyTeamFragment : Fragment() {
 
         setupLeagueRecyclerView(view)
 
-        if (!UserInfo.isLeagueManager) {
+        if (UserInfo.userType==getString(R.string.TeamManager)) {
             fetchTeamFromDatabase()
         }
 

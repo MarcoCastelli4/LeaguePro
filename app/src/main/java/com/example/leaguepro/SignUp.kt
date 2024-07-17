@@ -10,6 +10,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Spinner
+import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
@@ -142,12 +143,12 @@ class SignUp : AppCompatActivity() {
                     // Save user to the database
                     addUserToDatabase(userType, fullName, email, mAuth.currentUser?.uid!!)
 
-                    val intent = Intent(this@SignUp, MainActivity::class.java)
+                    val intent = Intent(this@SignUp, Login::class.java)
                     startActivity(intent)
                     finish()
 
                 } else {
-                    edtEmail.error = "Some error occurred, please try again"
+                    Toast.makeText(this, "Sign Up error", Toast.LENGTH_SHORT).show()
                 }
             }
     }

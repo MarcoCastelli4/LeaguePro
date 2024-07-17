@@ -100,7 +100,7 @@ class ProfileFragment : Fragment() {
         mDbRef = FirebaseDatabase.getInstance().getReference()
 
         val userTypeImageView: ImageView = view.findViewById(R.id.profile_image)
-        if (UserInfo.isLeagueManager) {
+        if (UserInfo.userType==getString(R.string.LeagueManager)) {
             userTypeImageView.setImageResource(R.drawable.league_manager) // Replace with your actual image resource
         }
 
@@ -285,7 +285,7 @@ class ProfileFragment : Fragment() {
                             val hasTeam = withContext(Dispatchers.IO) { hasTeam(currentUser.uid) }
                             val hasLeagues = withContext(Dispatchers.IO) { hasLeagues(currentUser.uid) }
 
-                            if ((!UserInfo.isLeagueManager && !hasTeam) || (UserInfo.isLeagueManager && !hasLeagues)) {
+                            if ((UserInfo.userType==getString(R.string.TeamManager) && !hasTeam) || (UserInfo.userType==getString(R.string.LeagueManager)&& !hasLeagues)) {
                                 currentUser.updateEmail(newEmail)
                                     .addOnCompleteListener { updateEmailTask ->
                                         if (updateEmailTask.isSuccessful) {
@@ -300,7 +300,7 @@ class ProfileFragment : Fragment() {
                                                     if (updateDbTask.isSuccessful) {
                                                         fullname.text = newName
                                                         email.text = newEmail
-                                                        UserInfo.isLeagueManager = newUserType == "League Manager"
+                                                        UserInfo.userType = newUserType
                                                         toggleEditMode(false)
                                                     } else {
                                                         Toast.makeText(

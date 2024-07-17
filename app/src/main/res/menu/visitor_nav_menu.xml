@@ -3,4 +3,6 @@
 
     <item android:title="All League"
         android:icon="@drawable/search"  android:id="@+id/allLeague" />
+    <item android:title="Go Back"
+        android:icon="@drawable/logout"  android:id="@+id/goBack" />
 </menu>
