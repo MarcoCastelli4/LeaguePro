@@ -43,7 +43,7 @@ class MyLeagueFragment : Fragment() {
     private lateinit var edtleague_prize: EditText
     private lateinit var edtleague_restrictions: EditText
     private lateinit var edtleague_playingPeriod: TextView
-    private lateinit var edtleague_MaxTeamNumber:EditText
+    private lateinit var edtleague_MaxTeamNumber:Spinner
     private lateinit var searchView: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -118,7 +118,14 @@ class MyLeagueFragment : Fragment() {
         leagueRecyclerView = view.findViewById(R.id.leagueRecyclerView)
         leagueRecyclerView.layoutManager = LinearLayoutManager(context)
         leagueRecyclerView.setHasFixedSize(true)
-        adapter = LeagueAdapter(requireContext(), leagueList,mDbRef,mAuth,false)
+        adapter = LeagueAdapter(requireContext(), leagueList,mDbRef,mAuth,false){ league ->
+            // Listener per il click su una card della RecyclerView
+            val fragment = ActLeagueFragment.newInstance(league)
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.frame_layout, fragment)
+                .addToBackStack(null)
+                .commit()
+        }
         leagueRecyclerView.adapter = adapter
     }
 
@@ -237,6 +244,15 @@ class MyLeagueFragment : Fragment() {
         edtleague_MaxTeamNumber=popupView.findViewById(R.id.edt_maxTeamNumber)
         mAuth = FirebaseAuth.getInstance()
 
+        ArrayAdapter.createFromResource(
+            requireContext(),
+            R.array.number_teams,
+            android.R.layout.simple_spinner_item
+        ).also { adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            edtleague_MaxTeamNumber.adapter = adapter
+        }
+
         val btnPlayingPeriod: ImageView = popupView.findViewById(R.id.btn_playing_period)
         btnPlayingPeriod.setOnClickListener { datePickerDialog(edtleague_playingPeriod) }
     }
@@ -279,7 +295,7 @@ class MyLeagueFragment : Fragment() {
         val leagueprize = edtleague_prize.text.toString()
         val leaguerestrictions = edtleague_restrictions.text.toString()
         val leagueplayingPeriod = edtleague_playingPeriod.text.toString()
-        val leagueMaxTeamNumber= edtleague_MaxTeamNumber.text.toString().toFloatOrNull()
+        val leagueMaxTeamNumber= edtleague_MaxTeamNumber.selectedItem.toString().toFloatOrNull()
 
         if (!validateFields(
                 leaguename,
@@ -359,12 +375,6 @@ class MyLeagueFragment : Fragment() {
         // Specific validation for the playing period field
         if (!isValidDateRange(leagueplayingPeriod!!)) {
             edtleague_playingPeriod.error = "Please enter a valid date range (dd/MM/yyyy - dd/MM/yyyy)"
-            valid = false
-        }
-
-
-        if (leagueMaxTeamNumber == null || leagueMaxTeamNumber < 4) {
-            edtleague_MaxTeamNumber.error = "Please enter a number greater than 4"
             valid = false
         }
 

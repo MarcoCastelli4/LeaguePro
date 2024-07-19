@@ -80,7 +80,6 @@ class MainActivity : AppCompatActivity() {
                     finish()
                     true
                 }
-
                 else -> false
             }
         }

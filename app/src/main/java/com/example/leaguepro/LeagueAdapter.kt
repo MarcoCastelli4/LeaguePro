@@ -3,16 +3,20 @@ package com.example.leaguepro
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
+import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.RatingBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.fragment.app.FragmentManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -30,7 +34,8 @@ class LeagueAdapter(
     var leagueList: ArrayList<League>,
     val dbRef: DatabaseReference,
     val mAuth: FirebaseAuth,
-    val fromAllLeague: Boolean
+    val fromAllLeague: Boolean,
+    val listener: (League) -> Unit
 ) : RecyclerView.Adapter<LeagueAdapter.LeagueViewHolder>() {
 
     class LeagueViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -40,6 +45,8 @@ class LeagueAdapter(
         val binButton: ImageView = itemView.findViewById(R.id.bin)
         val moreButton: ImageView = itemView.findViewById(R.id.more)
         val availablePlaces: TextView=itemView.findViewById(R.id.numberAvailable)
+        val cardLayout: View = itemView.findViewById(R.id.card_league)
+
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LeagueViewHolder {
@@ -94,6 +101,11 @@ class LeagueAdapter(
 
         holder.moreButton.setOnClickListener {
             showLeagueInfoPopup(currentLeague)
+        }
+
+        // Add listener on the entire card
+        holder.itemView.setOnClickListener {
+            listener.invoke(currentLeague)
         }
     }
 

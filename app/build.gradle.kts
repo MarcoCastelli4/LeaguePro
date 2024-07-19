@@ -54,7 +54,6 @@ android {
 }
 
 dependencies {
-
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9")
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.9")
 
@@ -81,6 +80,10 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.legacy.support.v4)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.fragment.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

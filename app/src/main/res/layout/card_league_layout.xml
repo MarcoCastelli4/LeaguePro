@@ -6,6 +6,7 @@
     android:layout_marginLeft="30dp"
     android:layout_marginRight="30dp"
     android:background="@drawable/container"
+    android:id="@+id/card_league"
    >
 
     <RelativeLayout

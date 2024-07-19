@@ -91,7 +91,14 @@ class AllLeagueFragment : Fragment() {
         leagueRecyclerView.layoutManager = LinearLayoutManager(context)
         leagueRecyclerView.hasFixedSize()
 
-        adapter = LeagueAdapter(requireContext(),leagueList,mDbRef,mAuth,true)
+        adapter = LeagueAdapter(requireContext(),leagueList,mDbRef,mAuth,true){ league ->
+            // Listener per il click su una card della RecyclerView
+            val fragment = ActLeagueFragment.newInstance(league)
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.frame_layout, fragment)
+                .addToBackStack(null)
+                .commit()
+        }
         leagueRecyclerView.adapter = adapter
 
 
