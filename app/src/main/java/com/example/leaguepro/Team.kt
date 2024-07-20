@@ -15,4 +15,6 @@ class Team {
         this.players=players
     }
 
+    constructor(uid: String?, name: String?, team_manager: String?, playersMap: Map<String, Player>) : this(uid, name, team_manager, ArrayList(playersMap.values))
+
 }

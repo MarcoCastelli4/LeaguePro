@@ -23,6 +23,6 @@ class Match {
     }
 
     override fun toString(): String {
-        return "Match(team1=${team1!!.name}, team2=${team2!!.name}, date=$date, time=$time, resultTeam1=${result!!.first}, resultTeam2=${result!!.second})"
+        return "Match(team1=${team1!!.name}, team2=${team2!!.name}, date=$date, time=$time)"
     }
 }
