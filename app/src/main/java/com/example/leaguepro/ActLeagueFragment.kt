@@ -33,6 +33,8 @@ class ActLeagueFragment : Fragment() {
     private lateinit var mDbRef: DatabaseReference
     private lateinit var calendar: List<Match>
     private lateinit var binding: InfoLeagueBinding
+    private var currentMenuItemId: Int = R.id.match
+
 
     companion object {
         @JvmStatic
@@ -72,6 +74,8 @@ class ActLeagueFragment : Fragment() {
         // Configura il menu di navigazione
         binding.upperNavigationView.inflateMenu(R.menu.league_upper_nav_menu)
         binding.upperNavigationView.setOnItemSelectedListener { item ->
+            currentMenuItemId = item.itemId // Aggiorna l'ID dell'elemento selezionato
+            updateCreateCalendarButtonVisibility()
             when (item.itemId) {
                 R.id.match -> {
                     NavigationManager.showIndicator(binding, item)
@@ -96,9 +100,19 @@ class ActLeagueFragment : Fragment() {
                     true
                 }
                 R.id.comunications -> {
-                    NavigationManager.showIndicator(binding, item)
-                    true
-                }
+                    leagueId?.let { id ->
+                        val fragment = CommunicationFragment().apply {
+                            arguments = Bundle().apply {
+                                putString("league_id", id)
+                            }
+                        }
+                        NavigationManager.replaceFragment(this, fragment)
+                    } ?: run {
+                        Toast.makeText(requireContext(), "League ID not available", Toast.LENGTH_LONG).show()
+                    }
+                        NavigationManager.showIndicator(binding, item)
+                        true
+                    }
                 else -> false
             }
         }
@@ -114,17 +128,13 @@ class ActLeagueFragment : Fragment() {
     }
 
     private fun setupView(view: View) {
-
         layout_calendar=view.findViewById(R.id.create_calendar)
         btn_createCalendar=view.findViewById(R.id.add_calendar)
-
         // aggiungere che il calendario non sia già stato creato e che siamo al giorno di inizio del torneo
 
-        if(UserInfo.userType==(getString(R.string.LeagueManager))){
-            layout_calendar.visibility=view.visibility
-        }
 
-
+        // Call updateCreateCalendarButtonVisibility here to set initial visibility
+        updateCreateCalendarButtonVisibility()
         btn_createCalendar.setOnClickListener {
             lifecycleScope.launch {
                 try {
@@ -189,6 +199,16 @@ class ActLeagueFragment : Fragment() {
             }
         }
 
+    }
+
+    private fun updateCreateCalendarButtonVisibility() {
+        // Assicurati che layout_calendar sia inizializzato prima di impostare la visibilità
+        if (this::layout_calendar.isInitialized) {
+            // Mostra layout_calendar solo se l'utente è un League Manager e l'elemento del menu selezionato è "match"
+            layout_calendar.visibility = if (UserInfo.userType == getString(R.string.LeagueManager) &&
+                currentMenuItemId == R.id.match
+            ) View.VISIBLE else View.GONE
+        }
     }
 
     private fun createCalendar(league: League, teams: List<Team>): List<Match> {
@@ -350,8 +370,4 @@ class ActLeagueFragment : Fragment() {
             }
         }
     }
-
-
-
-
 }
