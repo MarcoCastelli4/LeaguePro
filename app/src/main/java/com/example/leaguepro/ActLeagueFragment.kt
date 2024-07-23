@@ -1,11 +1,14 @@
 package com.example.leaguepro
 
+import android.app.AlertDialog
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
@@ -30,10 +33,14 @@ class ActLeagueFragment : Fragment() {
     private var leagueId: String? = null
     private lateinit var layout_calendar: LinearLayout
     private lateinit var btn_createCalendar: ImageView
+    private lateinit var layout_communication: LinearLayout
+    private lateinit var btn_addCommunication: ImageView
     private lateinit var mDbRef: DatabaseReference
     private lateinit var calendar: List<Match>
     private lateinit var binding: InfoLeagueBinding
     private var currentMenuItemId: Int = R.id.match
+    private var leagueOwnerId: String? = null
+
 
 
     companion object {
@@ -76,6 +83,7 @@ class ActLeagueFragment : Fragment() {
         binding.upperNavigationView.setOnItemSelectedListener { item ->
             currentMenuItemId = item.itemId // Aggiorna l'ID dell'elemento selezionato
             updateCreateCalendarButtonVisibility()
+            updateAddCommunicationButtonVisibility()
             when (item.itemId) {
                 R.id.match -> {
                     NavigationManager.showIndicator(binding, item)
@@ -125,6 +133,21 @@ class ActLeagueFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         mDbRef = FirebaseDatabase.getInstance().reference
         setupView(view)
+        lifecycleScope.launch {
+            try {
+                // Recupera solo l'ID del proprietario della lega
+                val leagueSnapshot = mDbRef.child("leagues").child(leagueId!!).get().await()
+                val league = leagueSnapshot.getValue(League::class.java)
+                leagueOwnerId = league?.leagueManager // Imposta l'ID del proprietario della lega
+
+                // Aggiorna la visibilità dei pulsanti in base all'ID del proprietario e al menu corrente
+                updateCreateCalendarButtonVisibility()
+                updateAddCommunicationButtonVisibility()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Error fetching league: ${e.message}", Toast.LENGTH_SHORT).show()
+                Log.e("ActLeagueFragment", "Error getting league", e)
+            }
+        }
     }
 
     private fun setupView(view: View) {
@@ -132,9 +155,14 @@ class ActLeagueFragment : Fragment() {
         btn_createCalendar=view.findViewById(R.id.add_calendar)
         // aggiungere che il calendario non sia già stato creato e che siamo al giorno di inizio del torneo
 
+        // Nuove inizializzazioni
+        layout_communication = view.findViewById(R.id.layout_add_communication)
+        btn_addCommunication = view.findViewById(R.id.add_communication)
 
-        // Call updateCreateCalendarButtonVisibility here to set initial visibility
+        // Configura la visibilità iniziale del layout
         updateCreateCalendarButtonVisibility()
+        updateAddCommunicationButtonVisibility()
+        //click listener per create calendar
         btn_createCalendar.setOnClickListener {
             lifecycleScope.launch {
                 try {
@@ -198,19 +226,90 @@ class ActLeagueFragment : Fragment() {
                 }
             }
         }
+        //click listener per il pulsante Add Communication
+        layout_communication.setOnClickListener {
+                showAddCommunicationDialog()
+        }
+    }
 
+    private fun showAddCommunicationDialog() {
+        // Inflazione del layout del dialogo
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.add_communication, null)
+        val inputText = dialogView.findViewById<EditText>(R.id.input_communication_text)
+        val btnSave = dialogView.findViewById<Button>(R.id.btn_save)
+        val btnCancel = dialogView.findViewById<Button>(R.id.btn_cancel)
+
+        // Costruzione e visualizzazione del dialogo
+        val dialog = AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .create()
+
+        // Listener per il pulsante "Save"
+        btnSave.setOnClickListener {
+            val text = inputText.text.toString()
+            if (text.isNotBlank()) {
+                saveCommunication(text)
+                dialog.dismiss()
+            } else {
+                Toast.makeText(requireContext(), "Please enter communication text", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Listener per il pulsante "Cancel"
+        btnCancel.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun saveCommunication(text: String) {
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        val currentDate = dateFormat.format(Date())
+
+        lifecycleScope.launch {
+            try {
+                val communicationId = mDbRef.child("communications").push().key
+                if (communicationId != null) {
+                    val communication = Communication(
+                        communicationId = communicationId,
+                        text = text,
+                        date = currentDate,
+                        leagueId = leagueId!!
+                    )
+                    mDbRef.child("communications").child(communicationId).setValue(communication)
+                        .await()
+                    Toast.makeText(requireContext(), "Communication added successfully", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), "Error generating communication ID", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Error saving communication: ${e.message}", Toast.LENGTH_SHORT).show()
+                Log.e("ActLeagueFragment", "Error saving communication", e)
+            }
+        }
     }
 
     private fun updateCreateCalendarButtonVisibility() {
         // Assicurati che layout_calendar sia inizializzato prima di impostare la visibilità
         if (this::layout_calendar.isInitialized) {
-            // Mostra layout_calendar solo se l'utente è un League Manager e l'elemento del menu selezionato è "match"
-            layout_calendar.visibility = if (UserInfo.userType == getString(R.string.LeagueManager) &&
+            // Mostra layout_calendar solo se l'utente è un League Manager e la voce del menu selezionata è "match"
+            val isLeagueOwner = UserInfo.userId == leagueOwnerId
+            layout_calendar.visibility = if (isLeagueOwner && UserInfo.userType == getString(R.string.LeagueManager) &&
                 currentMenuItemId == R.id.match
             ) View.VISIBLE else View.GONE
         }
     }
-
+    private fun updateAddCommunicationButtonVisibility() {
+        if (this::layout_communication.isInitialized) {
+            // Mostra addCommunicationLayout solo se l'utente è un League Manager e la voce del menu selezionata è "communications"
+            val isLeagueOwner = UserInfo.userId == leagueOwnerId
+            layout_communication.visibility =
+                if (isLeagueOwner && UserInfo.userType == getString(R.string.LeagueManager) &&
+                    currentMenuItemId == R.id.comunications
+                ) View.VISIBLE else View.GONE
+        }
+    }
     private fun createCalendar(league: League, teams: List<Team>): List<Match> {
         // MAX 5 partite al giorno 18-19-20-21-22
         val matches = mutableListOf<Match>()
@@ -321,6 +420,7 @@ class ActLeagueFragment : Fragment() {
                 // Fetch league details
                 val leagueSnapshot = mDbRef.child("leagues").child(leagueId).get().await()
                 league = leagueSnapshot.getValue(League::class.java)
+                leagueOwnerId = league?.leagueManager  // Imposta l'ID del proprietario della lega
 
                 // Fetch teams associated with the league
                 val teamsSnapshot = mDbRef.child("leagues_team")

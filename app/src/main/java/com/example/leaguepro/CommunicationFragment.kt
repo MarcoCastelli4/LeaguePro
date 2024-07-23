@@ -63,9 +63,7 @@ class CommunicationFragment: Fragment() {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                binding.tvErrorMessage.visibility = View.VISIBLE
-                binding.tvErrorMessage.text = "Failed to load communications"
-                binding.recyclerView.visibility = View.GONE
+                Toast.makeText(context, "Failed to load communications", Toast.LENGTH_LONG).show()
             }
         })
     }

@@ -45,6 +45,7 @@ class Login : AppCompatActivity() {
 
         btnGuest.setOnClickListener {
             UserInfo.logged=false
+            UserInfo.userId=""
             UserInfo.team_id=""
             UserInfo.userType=""
             val intent = Intent(this, MainActivity::class.java)
@@ -99,6 +100,7 @@ class Login : AppCompatActivity() {
                                     val type = document.child("userType").getValue(String::class.java)
                                     // Update userType global
                                     UserInfo.userType = type
+                                    UserInfo.userId=mAuth.currentUser?.uid
                                     UserInfo.logged=true
                                     if (type==getString(R.string.TeamManager)){
                                     mAuth.currentUser?.uid?.let { it1 -> findTeamId(it1)} }
