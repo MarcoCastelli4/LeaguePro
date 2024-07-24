@@ -14,6 +14,9 @@ class CommunicationFragment: Fragment() {
     private val binding get() = _binding!!
     private lateinit var database: DatabaseReference
     private lateinit var adapter: CommunicationAdapter
+    private val communications = mutableListOf<Communication>()
+    private var valueEventListener: ValueEventListener? = null
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -36,12 +39,14 @@ class CommunicationFragment: Fragment() {
         }
 
         database = FirebaseDatabase.getInstance().reference.child("communications")
-        val communications = mutableListOf<Communication>()
         adapter = CommunicationAdapter(communications)
         binding.recyclerView.adapter = adapter
 
-        database.orderByChild("leagueId").equalTo(leagueId).addValueEventListener(object : ValueEventListener {
+        valueEventListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+                // Verifica se il binding è ancora valido
+                val safeBinding = _binding ?: return
+
                 communications.clear()
                 for (dataSnapshot in snapshot.children) {
                     val communication = dataSnapshot.getValue(Communication::class.java)
@@ -51,13 +56,13 @@ class CommunicationFragment: Fragment() {
                 }
                 if (communications.isEmpty()) {
                     // Mostra il messaggio di errore se non ci sono comunicazioni
-                    binding.tvErrorMessage.visibility = View.VISIBLE
-                    binding.tvErrorMessage.text = "No communications available"
-                    binding.recyclerView.visibility = View.GONE
+                    safeBinding.tvErrorMessage.visibility = View.VISIBLE
+                    safeBinding.tvErrorMessage.text = "No communications available"
+                    safeBinding.recyclerView.visibility = View.GONE
                 } else {
                     // Nascondi il messaggio di errore e mostra la lista
-                    binding.tvErrorMessage.visibility = View.GONE
-                    binding.recyclerView.visibility = View.VISIBLE
+                    safeBinding.tvErrorMessage.visibility = View.GONE
+                    safeBinding.recyclerView.visibility = View.VISIBLE
                 }
                 adapter.notifyDataSetChanged()
             }
@@ -65,11 +70,17 @@ class CommunicationFragment: Fragment() {
             override fun onCancelled(error: DatabaseError) {
                 Toast.makeText(context, "Failed to load communications", Toast.LENGTH_LONG).show()
             }
-        })
+        }
+
+        database.orderByChild("leagueId").equalTo(leagueId).addValueEventListener(valueEventListener!!)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        // Rimuovi il listener di Firebase
+        valueEventListener?.let {
+            database.removeEventListener(it)
+        }
         _binding = null
     }
 }

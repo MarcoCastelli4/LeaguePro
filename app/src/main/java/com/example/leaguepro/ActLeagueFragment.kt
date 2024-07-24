@@ -2,6 +2,7 @@ package com.example.leaguepro
 
 import android.app.AlertDialog
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -32,9 +33,11 @@ class ActLeagueFragment : Fragment() {
 
     private var leagueId: String? = null
     private lateinit var layout_calendar: LinearLayout
+    private lateinit var layout_chat: LinearLayout
     private lateinit var btn_createCalendar: ImageView
     private lateinit var layout_communication: LinearLayout
     private lateinit var btn_addCommunication: ImageView
+    private lateinit var btn_addChat: ImageView
     private lateinit var mDbRef: DatabaseReference
     private lateinit var calendar: List<Match>
     private lateinit var binding: InfoLeagueBinding
@@ -83,7 +86,7 @@ class ActLeagueFragment : Fragment() {
         binding.upperNavigationView.setOnItemSelectedListener { item ->
             currentMenuItemId = item.itemId // Aggiorna l'ID dell'elemento selezionato
             updateCreateCalendarButtonVisibility()
-            updateAddCommunicationButtonVisibility()
+            updateCommunicationAndChatButtonVisibility()
             when (item.itemId) {
                 R.id.match -> {
                     NavigationManager.showIndicator(binding, item)
@@ -142,7 +145,7 @@ class ActLeagueFragment : Fragment() {
 
                 // Aggiorna la visibilità dei pulsanti in base all'ID del proprietario e al menu corrente
                 updateCreateCalendarButtonVisibility()
-                updateAddCommunicationButtonVisibility()
+                updateCommunicationAndChatButtonVisibility()
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Error fetching league: ${e.message}", Toast.LENGTH_SHORT).show()
                 Log.e("ActLeagueFragment", "Error getting league", e)
@@ -155,13 +158,14 @@ class ActLeagueFragment : Fragment() {
         btn_createCalendar=view.findViewById(R.id.add_calendar)
         // aggiungere che il calendario non sia già stato creato e che siamo al giorno di inizio del torneo
 
-        // Nuove inizializzazioni
         layout_communication = view.findViewById(R.id.layout_add_communication)
         btn_addCommunication = view.findViewById(R.id.add_communication)
+        layout_chat=view.findViewById(R.id.layout_chat)
+        btn_addChat = view.findViewById(R.id.add_chat)
 
-        // Configura la visibilità iniziale del layout
+        // Configura la visibilità iniziale del layout di calendar e communication e chat
         updateCreateCalendarButtonVisibility()
-        updateAddCommunicationButtonVisibility()
+        updateCommunicationAndChatButtonVisibility()
         //click listener per create calendar
         btn_createCalendar.setOnClickListener {
             lifecycleScope.launch {
@@ -230,8 +234,25 @@ class ActLeagueFragment : Fragment() {
         layout_communication.setOnClickListener {
                 showAddCommunicationDialog()
         }
+        btn_addCommunication.setOnClickListener {
+            showAddCommunicationDialog()
+        }
+        // Listener per il pulsante "Add Chat"
+        layout_chat.setOnClickListener {
+            openChat()
+        }
+        btn_addChat.setOnClickListener {
+            openChat()
+        }
     }
 
+
+    private fun openChat() {
+        // Qui devi inserire il codice per aprire la chat
+        // Puoi usare un Intent per avviare una nuova attività o aprire un fragment
+        //val intent = Intent(requireContext(), ChatActivity::class.java)
+        //startActivity(intent)
+    }
     private fun showAddCommunicationDialog() {
         // Inflazione del layout del dialogo
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.add_communication, null)
@@ -300,7 +321,7 @@ class ActLeagueFragment : Fragment() {
             ) View.VISIBLE else View.GONE
         }
     }
-    private fun updateAddCommunicationButtonVisibility() {
+    private fun updateCommunicationAndChatButtonVisibility() {
         if (this::layout_communication.isInitialized) {
             // Mostra addCommunicationLayout solo se l'utente è un League Manager e la voce del menu selezionata è "communications"
             val isLeagueOwner = UserInfo.userId == leagueOwnerId
@@ -308,6 +329,10 @@ class ActLeagueFragment : Fragment() {
                 if (isLeagueOwner && UserInfo.userType == getString(R.string.LeagueManager) &&
                     currentMenuItemId == R.id.comunications
                 ) View.VISIBLE else View.GONE
+        }
+        if(this::layout_chat.isInitialized){
+            layout_chat.visibility =
+                if(UserInfo.userType != "" && currentMenuItemId == R.id.comunications) View.VISIBLE else View.GONE
         }
     }
     private fun createCalendar(league: League, teams: List<Team>): List<Match> {
