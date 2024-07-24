@@ -89,6 +89,7 @@ class ActLeagueFragment : Fragment() {
             updateCommunicationAndChatButtonVisibility()
             when (item.itemId) {
                 R.id.match -> {
+                    NavigationManager.replaceFragment(this, AllMatchFragment())
                     NavigationManager.showIndicator(binding, item)
                     true
                 }

@@ -56,9 +56,15 @@ class LeagueTableFragment : Fragment() {
                             // Aggiungi l'intestazione della tabella
                             addTableHeader()
 
-                            // Aggiungi i dati delle squadre
-                            leagueTable.getSortedTeams().forEach { team ->
-                                addTeamRow(team)
+                            // Verifica se il torneo ID è disponibile
+                            leagueUid?.let { tid ->
+                                // Aggiungi i dati delle squadre per il torneo specificato
+                                leagueTable.getSortedTeams(tid).forEach { team ->
+                                    addTeamRow(team, tid)
+                                }
+                            } ?: run {
+                                // Messaggio se il torneo ID non è disponibile
+                                addNoDataRow()
                             }
                         } else {
                             // Mostra un messaggio se la classifica non è disponibile
@@ -103,19 +109,20 @@ class LeagueTableFragment : Fragment() {
         leagueTableLayout.addView(headerRow)
     }
 
-    private fun addTeamRow(team: Team) {
+    private fun addTeamRow(team: Team, tournamentId: String) {
         // Assicurati che il contesto sia non null
         val context = requireContext()
         val row = TableRow(context)
 
+        val stats = team.tournaments?.get(tournamentId) ?: TournamentStats()
         val values = listOf(
             team.name ?: "N/A",
-            team.points.toString(),
-            team.wins.toString(),
-            team.draws.toString(),
-            team.losses.toString(),
-            team.goalsFor.toString(),
-            team.goalsAgainst.toString()
+            stats.points.toString(),
+            stats.wins.toString(),
+            stats.draws.toString(),
+            stats.losses.toString(),
+            stats.goalsFor.toString(),
+            stats.goalsAgainst.toString()
         )
 
         values.forEach { value ->
@@ -136,7 +143,7 @@ class LeagueTableFragment : Fragment() {
         val context = requireContext()
         val noDataRow = TableRow(context)
         val noDataTextView = TextView(context).apply {
-            text = "No team registered"
+            text = "No data available"
             setPadding(16, 16, 16, 16)
             textSize = 16f
             gravity = Gravity.CENTER

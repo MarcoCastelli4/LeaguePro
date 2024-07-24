@@ -2,6 +2,7 @@ package com.example.leaguepro
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.DatePickerDialog
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
@@ -89,7 +90,7 @@ class MyTeamFragment : Fragment() {
 
         setupLeagueRecyclerView(view)
 
-        if (UserInfo.userType==getString(R.string.TeamManager)) {
+        if (UserInfo.userType == getString(R.string.TeamManager)) {
             fetchTeamFromDatabase()
         }
 
@@ -136,12 +137,12 @@ class MyTeamFragment : Fragment() {
         }
     }
 
-    private fun showConfirmationDialog(team_id: String) {
+    private fun showConfirmationDialog(teamId: String) {
         val builder = AlertDialog.Builder(context, R.style.CustomAlertDialog)
         builder.setTitle("Delete confirm")
             .setMessage("Are you sure to delete your team and all players?")
             .setPositiveButton("Delete") { dialog, _ ->
-                removeTeamFromDatabase(team_id) { teamId ->
+                removeTeamFromDatabase(teamId) { teamId ->
                     UserInfo.team_id = teamId
                     toggleVisibility()
                     edtteam_name.text = "Click to create Team"
@@ -195,9 +196,9 @@ class MyTeamFragment : Fragment() {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     if (snapshot.exists()) {
                         for (teamSnapshot in snapshot.children) {
-                            val id = teamSnapshot.child("uid").getValue().toString()
-                            if (id != "") {
-                                teamNameTextView.text = teamSnapshot.child("name").getValue().toString()
+                            val id = teamSnapshot.child("id").getValue(String::class.java)
+                            if (id != null && id.isNotEmpty()) {
+                                teamNameTextView.text = teamSnapshot.child("name").getValue(String::class.java)
                                 callback(id)
                             }
                         }
@@ -269,147 +270,95 @@ class MyTeamFragment : Fragment() {
 
     private fun savePlayer(popupWindow: PopupWindow) {
         val playername = edtplayer_name.text.toString()
-        val playerole = edtplayer_role.selectedItem.toString()
+        val playerrole = edtplayer_role.selectedItem.toString()
         val playerbirthday = edtplayer_birthday.text.toString()
 
-        if (!validateFields(
-                playername,
-                playerbirthday
-            )
-        ) {
+        if (!validateFields(playername, playerbirthday)) {
             return
         }
 
-        addPlayerToTeam(
-            playername,
-            playerole,
-            playerbirthday,
-            UserInfo.team_id
-        )
-
-        popupWindow.dismiss()
-    }
-    private fun validateFields(playername: String?, playerbirthday: String?): Boolean {
-        var valid = true
-
-        // Check each field and set an error message if it's empty
-        if (playername!!.isEmpty()) {
-            edtplayer_name.error = "Please enter player name"
-            valid = false
+        addPlayerToTeam(playername, playerrole, playerbirthday, UserInfo.team_id) {
+            Toast.makeText(context, "Player added successfully!", Toast.LENGTH_SHORT).show()
+            popupWindow.dismiss()
         }
-        if (!isValidDateRange(playerbirthday!!)) {
-            edtplayer_birthday.error = "Please select a player birthday"
-            valid = false
+    }
+
+    private fun validateFields(playername: String, playerbirthday: String): Boolean {
+        var isValid = true
+        if (playername.isEmpty()) {
+            edtplayer_name.error = "Name cannot be empty"
+            isValid = false
         }
-        return valid
-    }
-
-    private fun isValidDateRange(dateRange: String): Boolean {
-        // Define the regex pattern for the date range
-        val dateRangePattern = Regex("""\b\d{2}/\d{2}/\d{4}\b""")
-
-        // Check if the input string matches the pattern
-        return dateRangePattern.matches(dateRange)
-    }
-    private fun datePickerDialog(edtPlayingPeriod: TextView) {
-        val today = MaterialDatePicker.todayInUtcMilliseconds()
-        val constraintsBuilder = CalendarConstraints.Builder()
-            .setValidator(DateValidatorPointBackward.now()) // Consenti solo date nel passato
-
-        val builder = MaterialDatePicker.Builder.datePicker() // Usa il DatePicker singolo per la data di nascita
-            .setTitleText("Select birthday")
-            .setCalendarConstraints(constraintsBuilder.build())
-            .setTheme(R.style.CustomDatePicker) // Usa il tema personalizzato
-
-        val datePicker = builder.build()
-        datePicker.addOnPositiveButtonClickListener { selection ->
-            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH)
-            val selectedDateString = sdf.format(Date(selection ?: 0))
-            edtPlayingPeriod.text = selectedDateString
+        if (playerbirthday.isEmpty()) {
+            edtplayer_birthday.error = "Birthday cannot be empty"
+            isValid = false
         }
-        datePicker.show(requireFragmentManager(), "DATE_PICKER")
+        return isValid
     }
 
-    private fun addPlayerToTeam(playername: String?, playerrole: String?, playerbirthday: String?, team: String?) {
-        // Generate a unique key using push()
-        val playerId = mDbRef.child("teams").child(team!!).push().key
+    private fun addPlayerToTeam(name: String, role: String, birthday: String, teamId: String?, onSuccess: () -> Unit) {
+        teamId?.let {
+            val playerId = mDbRef.child("teams").child(it).child("players").push().key
+            if (playerId != null) {
+                val player = Player(uid = playerId, name = name, role = role, birthday = birthday)
+                mDbRef.child("teams").child(it).child("players").child(playerId).setValue(player)
+                    .addOnSuccessListener {
+                        onSuccess()
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(context, "Failed to add player: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+            }
+        }
+    }
 
-        if (playerId != null) {
-            val player = Player(playername, playerrole, playerbirthday,playerId)
-            // Set the value for the new node
-            mDbRef.child("teams").child(team).child("players").child(playerId).setValue(player)
+    private fun addOrUpdateTeamToDatabase(name: String, managerId: String?, callback: (String) -> Unit) {
+        val teamId = mDbRef.child("teams").push().key
+        if (teamId != null) {
+            val team = Team(
+                id = teamId,
+                name = name,
+                team_manager = managerId,
+                players = arrayListOf(),
+                tournaments = mapOf()
+            )
+            mDbRef.child("teams").child(teamId).setValue(team)
                 .addOnSuccessListener {
-                    // Handle success
-                    Toast.makeText(context, "Player added successfully!", Toast.LENGTH_SHORT).show()
+                    callback(teamId)
                 }
                 .addOnFailureListener { e ->
-                    // Handle failure
-                    Toast.makeText(context, "Failed to add player: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Failed to add/update team: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
-        } else {
-            // Handle error: Failed to generate unique key
-            Toast.makeText(context, "Failed to generate unique key", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun removeTeamFromDatabase(teamId: String,callback: (String) -> Unit) {
-        val leaguesTeamRef = mDbRef.child("leagues_team")
-        val teamsRef = mDbRef.child("teams")
-
-        // Check if there are any leagues associated with the team
-        leaguesTeamRef.orderByChild("team_id").equalTo(teamId).addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                if (snapshot.exists()) {
-                    Toast.makeText(context, "Cannot delete team entered in a league!", Toast.LENGTH_LONG).show()
-                } else {
-                    // If no leagues are associated with the team, delete the team
-                    teamsRef.child(teamId).removeValue().addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            callback("")
-                            Toast.makeText(context, "Team deleted!", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(context, "Error in team deletion", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
+    private fun removeTeamFromDatabase(teamId: String, onSuccess: (String) -> Unit) {
+        mDbRef.child("teams").child(teamId).removeValue()
+            .addOnSuccessListener {
+                onSuccess(teamId)
             }
-
-            override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(context, "Error checking league_teams: ${error.message}", Toast.LENGTH_SHORT).show()
+            .addOnFailureListener { e ->
+                Toast.makeText(context, "Failed to remove team: ${e.message}", Toast.LENGTH_SHORT).show()
             }
-        })
     }
 
-    private fun addOrUpdateTeamToDatabase(teamName: String, userId: String?, callback: (String) -> Unit) {
-        val teamId = mDbRef.child("teams").push().key!!
-        val team = Team(teamId, teamName, userId,playerList,0,0,0,0,0,0,null)
+    private fun datePickerDialog(dateTextView: TextView) {
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
 
-        if (UserInfo.team_id.isNullOrEmpty()) {
-            mDbRef.child("teams").child(teamId).setValue(team).addOnSuccessListener {
-                Toast.makeText(context, "Team added successfully", Toast.LENGTH_SHORT).show()
-                callback(teamId)
-            }.addOnFailureListener { error ->
-                Toast.makeText(context, "Error adding team: ${error.message}", Toast.LENGTH_SHORT).show()
-            }
-        } else {
-            mDbRef.child("teams").child(UserInfo.team_id!!).child("name").setValue(teamName)
-                .addOnSuccessListener {
-                    Toast.makeText(context, "Team updated successfully", Toast.LENGTH_SHORT).show()
-                }.addOnFailureListener { error ->
-                    Toast.makeText(context, "Error updating team: ${error.message}", Toast.LENGTH_SHORT).show()
-                }
-            callback(UserInfo.team_id!!)
-        }
+        DatePickerDialog(requireContext(), { _, selectedYear, selectedMonth, selectedDay ->
+            val selectedDate = "$selectedDay/${selectedMonth + 1}/$selectedYear"
+            dateTextView.text = selectedDate
+        }, year, month, day).show()
     }
-
 
     private fun toggleVisibility() {
-        if (UserInfo.team_id=="") {
+        if (UserInfo.team_id.isNullOrEmpty()) {
             addPlayerContainer.visibility = View.GONE
-            team_bin.visibility = View.GONE
         } else {
             addPlayerContainer.visibility = View.VISIBLE
-            team_bin.visibility = View.VISIBLE
         }
     }
 }

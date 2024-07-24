@@ -152,12 +152,12 @@ class LeagueAdapter(
 
             if (startDate != null && startDate.after(today)) {
                 val leaguesTeamRef = dbRef.child("leagues_team")
-                leaguesTeamRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                leaguesTeamRef.orderByChild("league_id").equalTo(league.uid).addListenerForSingleValueEvent(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
                         for (dataSnapshot in snapshot.children) {
-                            val leagueTeamData = dataSnapshot.value as Map<String, String>
-                            val leagueId = leagueTeamData["league_id"]
-                            val teamId = leagueTeamData["team_id"]
+                            val leagueTeamData = dataSnapshot.value as? Map<String, String>
+                            val leagueId = leagueTeamData?.get("league_id")
+                            val teamId = leagueTeamData?.get("team_id")
 
                             if (leagueId == league.uid && teamId == teamUid) {
                                 getTeamNameById(teamUid) { teamName ->
@@ -192,12 +192,17 @@ class LeagueAdapter(
             Toast.makeText(context, "Error parsing date: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
+
     private fun getTeamNameById(teamId: String, callback: (String?) -> Unit) {
         val teamsRef = dbRef.child("teams") // Assumi che "teams" sia il percorso in cui i dati delle squadre sono memorizzati
         teamsRef.child(teamId).addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val team = snapshot.getValue(Team::class.java)
-                callback(team?.name) // Passa il nome del team al callback
+                if (snapshot.exists()) {
+                    val team = snapshot.getValue(Team::class.java)
+                    callback(team?.name) // Passa il nome del team al callback
+                } else {
+                    callback(null) // Passa null se il team non esiste
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -206,6 +211,8 @@ class LeagueAdapter(
             }
         })
     }
+
+
 
 
     private fun removeTeamFromLeagueTable(leagueId: String, teamName: String) {
