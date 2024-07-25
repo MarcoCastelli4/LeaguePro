@@ -84,7 +84,8 @@
             android:layout_marginTop="16dp"
             android:text="FINE"
             android:textColor="#D32F2F"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            android:visibility="gone" />
 
         <ImageView
             android:id="@+id/iv_edit"
@@ -94,7 +95,8 @@
             android:layout_below="@id/tv_status"
             android:layout_marginTop="8dp"
             android:contentDescription="Edit"
-            android:src="@drawable/edit" />
+            android:src="@drawable/edit"
+            android:visibility="gone"/>
 
     </RelativeLayout>
 </androidx.cardview.widget.CardView>

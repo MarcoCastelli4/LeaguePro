@@ -379,7 +379,6 @@ class ActLeagueFragment : Fragment() {
                 if(UserInfo.userType != "" && currentMenuItemId == R.id.comunications) View.VISIBLE else View.GONE
         }
     }
-
     private fun createCalendar(league: League, teams: List<Team>): List<Match> {
         val matches = mutableListOf<Match>()
         val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -438,8 +437,8 @@ class ActLeagueFragment : Fragment() {
                                 team2 = team2,
                                 date = currentDay,
                                 time = currentTime,
-                                result1 = 0,
-                                result2 = 0
+                                result1 = null,
+                                result2 = null
                             )
                             matches.add(match)
                             matchId++
