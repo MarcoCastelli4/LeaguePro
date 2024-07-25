@@ -16,8 +16,11 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.leaguepro.databinding.InfoLeagueBinding
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.getValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -28,6 +31,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.Random
+
 
 class ActLeagueFragment : Fragment() {
 
@@ -89,7 +93,12 @@ class ActLeagueFragment : Fragment() {
             updateCommunicationAndChatButtonVisibility()
             when (item.itemId) {
                 R.id.match -> {
-                    NavigationManager.replaceFragment(this, AllMatchFragment())
+                    leagueId?.let { id ->
+                        val fragment = AllMatchFragment.newInstance(id)
+                        NavigationManager.replaceFragment(this, fragment)
+                    } ?: run {
+                        Toast.makeText(requireContext(), "League ID not available", Toast.LENGTH_LONG).show()
+                    }
                     NavigationManager.showIndicator(binding, item)
                     true
                 }
@@ -169,67 +178,7 @@ class ActLeagueFragment : Fragment() {
         updateCommunicationAndChatButtonVisibility()
         //click listener per create calendar
         btn_createCalendar.setOnClickListener {
-            lifecycleScope.launch {
-                try {
-                    val result = fetchLeagueAndTeams(leagueId!!, requireContext())
-                    if (result == null) return@launch // Early return if no teams are found or an error occurred
-
-                    val (league, teams) = result
-                    // Print league and teams details in the log
-                    league?.let { Log.d("ActLeagueFragment", "League Name: ${it.name}") }
-                    teams!!.forEach { team ->
-                        Log.d(
-                            "ActLeagueFragment",
-                            "Team Name: ${team.name}"
-                        )
-                    }
-
-
-                        // Create a test league and teams for testing
-                        val pl: ArrayList<Player> = ArrayList()
-                        val leagueProva = League(
-                            "1",
-                            "A",
-                            "",
-                            1.0f,
-                            "",
-                            "",
-                            "",
-                            "",
-                            "15/07/2024 - 30/07/2024",
-                            "1",
-                            8.0f
-                        )
-                        val teamA = Team("1", "A", "A", pl)
-                        val teamB = Team("2", "B", "A", pl)
-                        val teamC = Team("3", "C", "A", pl)
-                        val teamD = Team("4", "D", "A", pl)
-                        val teamE = Team("5", "E", "A", pl)
-                        val teamF = Team("6", "F", "A", pl)
-                        val teamG = Team("7", "G", "A", pl)
-                        val teamH = Team("8", "H", "A", pl)
-
-                        val teamListProva =
-                            arrayListOf(teamA, teamB, teamC, teamD, teamE, teamF, teamG, teamH)
-
-                        calendar = createCalendar(leagueProva, teamListProva)
-
-                    calendar = createCalendar(league!!, teams)
-
-                    // Print the calendar matches in the log
-                    val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-                    for (match in calendar) {
-                        Log.d(
-                            "Calendar",
-                            "Match: ${match.toString()}"
-                        )
-                    }
-
-                } catch (e: Exception) {
-                    // Gestire eventuali errori
-                    Log.e("ActLeagueFragment", "Error getting league and teams", e)
-                }
-            }
+            checkIfCalendarExists(leagueId!!)
         }
         //click listener per il pulsante Add Communication
         layout_communication.setOnClickListener {
@@ -247,7 +196,103 @@ class ActLeagueFragment : Fragment() {
         }
     }
 
+    private fun createAndSaveCalendar(leagueId: String){
+        lifecycleScope.launch {
+            try {
+                val result = fetchLeagueAndTeams(leagueId!!, requireContext())
+                if (result == null) return@launch // Early return if no teams are found or an error occurred
 
+                val (league, teams) = result
+                // Print league and teams details in the log
+                league?.let { Log.d("ActLeagueFragment", "League Name: ${it.name}") }
+                teams!!.forEach { team ->
+                    Log.d(
+                        "ActLeagueFragment",
+                        "Team Name: ${team.name}"
+                    )
+                }
+                /*   // Create a test league and teams for testing
+                                        val pl: ArrayList<Player> = ArrayList()
+                                        val leagueProva = League(
+                         "1",
+                                            "A",
+                                            "",
+                                            1.0f,
+                                            "",
+                                            "",
+                                            "",
+                                            "",
+                                            "15/07/2024 - 30/07/2024",
+                                            "1",
+                                            8.0f
+                                        )
+                                        val teamA = Team("1", "A", "A", pl)
+                                        val teamB = Team("2", "B", "A", pl)
+                                        val teamC = Team("3", "C", "A", pl)
+                                        val teamD = Team("4", "D", "A", pl)
+                                        val teamE = Team("5", "E", "A", pl)
+                                        val teamF = Team("6", "F", "A", pl)
+                                        val teamG = Team("7", "G", "A", pl)
+                                        val teamH = Team("8", "H", "A", pl)
+
+                                        val teamListProva =
+                                            arrayListOf(teamA, teamB, teamC, teamD, teamE, teamF, teamG, teamH)
+
+                                        calendar = createCalendar(leagueProva, teamListProva)
+                */
+                calendar = createCalendar(league!!, teams)
+
+                // Print the calendar matches in the log
+                val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                for (match in calendar) {
+                    Log.d(
+                        "Calendar",
+                        "Match: ${match.toString()}"
+                    )
+                }
+
+                saveMatchesToDatabase(calendar, leagueId!!)
+            } catch (e: Exception) {
+                // Gestire eventuali errori
+                Log.e("ActLeagueFragment", "Error getting league and teams", e)
+            }
+        }
+    }
+    private fun checkIfCalendarExists(leagueId: String) {
+        val database = FirebaseDatabase.getInstance()
+        val matchRef = database.getReference("matches").child(leagueId)
+
+        matchRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(dataSnapshot: DataSnapshot) {
+                if (dataSnapshot.exists()) {
+                    // Il calendario esiste già
+                    Toast.makeText(requireContext(), "The calendar has already been created for this league", Toast.LENGTH_LONG).show()
+                } else {
+                    // Il calendario non esiste, procedi con la creazione
+                    createAndSaveCalendar(leagueId)
+                }
+            }
+
+            override fun onCancelled(databaseError: DatabaseError) {
+                Log.w("Firebase", "checkIfCalendarExists:onCancelled", databaseError.toException())
+            }
+        })
+    }
+    fun saveMatchesToDatabase(matches: List<Match>, leagueId: String) {
+        val database = FirebaseDatabase.getInstance()
+        val matchRef = database.getReference("matches").child(leagueId)
+
+        matches.forEach { match ->
+            match.id = matchRef.push().key // Genera una chiave unica per ogni match
+            matchRef.child(match.id!!).setValue(match)
+                .addOnSuccessListener {
+                    Log.d("RealtimeDB", "Match added with ID: ${match.id}")
+                }
+                .addOnFailureListener { e ->
+                    Log.w("RealtimeDB", "Error adding match", e)
+                }
+        }
+    }
     private fun openChat() {
         // Qui devi inserire il codice per aprire la chat
         // Puoi usare un Intent per avviare una nuova attività o aprire un fragment
@@ -284,7 +329,6 @@ class ActLeagueFragment : Fragment() {
 
         dialog.show()
     }
-
     private fun saveCommunication(text: String) {
         val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         val currentDate = dateFormat.format(Date())
@@ -311,7 +355,6 @@ class ActLeagueFragment : Fragment() {
             }
         }
     }
-
     private fun updateCreateCalendarButtonVisibility() {
         // Assicurati che layout_calendar sia inizializzato prima di impostare la visibilità
         if (this::layout_calendar.isInitialized) {
@@ -336,8 +379,8 @@ class ActLeagueFragment : Fragment() {
                 if(UserInfo.userType != "" && currentMenuItemId == R.id.comunications) View.VISIBLE else View.GONE
         }
     }
+
     private fun createCalendar(league: League, teams: List<Team>): List<Match> {
-        // MAX 5 partite al giorno 18-19-20-21-22
         val matches = mutableListOf<Match>()
         val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -347,27 +390,24 @@ class ActLeagueFragment : Fragment() {
         val calendar = Calendar.getInstance()
         calendar.time = startDate
 
-        // Crea un elenco di tutte le possibili partite
         val allPossibleMatches = mutableListOf<Pair<Team, Team>>()
         for (i in teams.indices) {
             for (j in i + 1 until teams.size) {
                 allPossibleMatches.add(Pair(teams[i], teams[j]))
             }
         }
-
-        // Mescola le partite in modo casuale
         allPossibleMatches.shuffle()
 
-        val matchDay = mutableMapOf<String, ArrayList<String>>() // Mappa per tracciare i giorni e le squadre che giocano
-
-        // Inizializza matchDay per ogni giorno nel periodo della lega
+        val matchDay = mutableMapOf<String, MutableList<String>>()
         val tempCalendar = Calendar.getInstance()
         tempCalendar.time = startDate
         while (!tempCalendar.time.after(endDate)) {
             val dayKey = dateFormat.format(tempCalendar.time)
-            matchDay[dayKey] = arrayListOf()
+            matchDay[dayKey] = mutableListOf()
             tempCalendar.add(Calendar.DAY_OF_MONTH, 1)
         }
+
+        val matchTimes = listOf("20:30", "21:30")
 
         var matchId = 1
         val random = Random()
@@ -377,7 +417,6 @@ class ActLeagueFragment : Fragment() {
                 val team1 = teams[i]
                 val team2 = teams[j]
 
-                // Tenta di trovare una data valida per il match
                 var validDateFound = false
                 while (!validDateFound) {
                     val randomDayOffset = random.nextInt((endDate.time - startDate.time).toInt() / (1000 * 60 * 60 * 24) + 1)
@@ -385,40 +424,50 @@ class ActLeagueFragment : Fragment() {
                     calendar.add(Calendar.DAY_OF_MONTH, randomDayOffset)
 
                     val currentDay = dateFormat.format(calendar.time)
+                    val availableTimes = matchTimes - matchDay[currentDay]?.toSet().orEmpty()
 
-                    if (matchDay[currentDay]!!.size < 5 &&
-                        !matchDay[currentDay]!!.contains(team1.id) &&
-                        !matchDay[currentDay]!!.contains(team2.id)
-                    ) {
-                        val matchDate = currentDay
-                        val matchTime = timeFormat.format(calendar.time)
+                    if (availableTimes.isNotEmpty()) {
+                        val currentTime = availableTimes.random()
 
-                        val match = Match(
-                            id = matchId.toString(),
-                            team1 = team1,
-                            team2 = team2,
-                            date = matchDate.toString(),
-                            time = matchTime.toString(),
-                            result = Pair(0, 0)
-                        )
-                        matches.add(match)
-                        matchId++
+                        if (matchDay[currentDay]?.size ?: 0 < 2 &&
+                            (matchDay[currentDay]?.contains(currentTime) ?: false).not()
+                        ) {
+                            val match = Match(
+                                id = matchId.toString(),
+                                team1 = team1,
+                                team2 = team2,
+                                date = currentDay,
+                                time = currentTime,
+                                result1 = 0,
+                                result2 = 0
+                            )
+                            matches.add(match)
+                            matchId++
 
-                        // Aggiungi le squadre all'elenco delle squadre che giocano in quel giorno
-                        matchDay[currentDay]!!.add(team1.id!!)
-                        matchDay[currentDay]!!.add(team2.id!!)
+                            matchDay[currentDay]?.add(currentTime)
 
-                        validDateFound = true
+                            validDateFound = true
+                        }
+                    } else {
+                        // Se tutti gli orari sono occupati, passare al giorno successivo
+                        calendar.add(Calendar.DAY_OF_MONTH, 1)
                     }
                 }
             }
         }
 
-        matches.sortBy { dateFormat.parse(it.date!!) }
+        // Ordinamento della lista di partite per data e ora
+        matches.sortWith(Comparator { m1, m2 ->
+            val dateComparison = dateFormat.parse(m1.date).compareTo(dateFormat.parse(m2.date))
+            if (dateComparison == 0) {
+                timeFormat.parse(m1.time).compareTo(timeFormat.parse(m2.time))
+            } else {
+                dateComparison
+            }
+        })
+
         return matches
-
     }
-
 
 
     private fun splitPlayingPeriod(playingPeriod: String): Pair<Date, Date>? {
@@ -478,9 +527,9 @@ class ActLeagueFragment : Fragment() {
 
                 if (league != null) {
                     // aggiungere con or or (teamsList.size<league.maxNumberTeam!!)
-                    if (teamsList.isEmpty() ) {
+                    if (teamsList.isEmpty() || teamsList.size < league.maxNumberTeam!!  ) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(context, "Impossible create a league not enough team!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Impossible to create a calendar: there are not enough team!", Toast.LENGTH_SHORT).show()
                         }
                         return@withContext null
                     }

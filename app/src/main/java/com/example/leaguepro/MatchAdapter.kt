@@ -17,12 +17,12 @@ class MatchAdapter(private val matchList: List<Match>) : RecyclerView.Adapter<Ma
 
     override fun onBindViewHolder(holder: MatchViewHolder, position: Int) {
         val match = matchList[position]
-        holder.tvStage.text = "Group stage: Stage A" // Update as necessary
+        holder.tvStage.text = "Group stage" // Update as necessary
         holder.tvMatchTime.text = "${match.date} ${match.time}"
         holder.tvTeam1.text = match.team1?.name
-        holder.tvTeam1Score.text = match.result?.first?.toString()
+        holder.tvTeam1Score.text = match.result1?.toString()
         holder.tvTeam2.text = match.team2?.name
-        holder.tvTeam2Score.text = match.result?.second?.toString()
+        holder.tvTeam2Score.text = match.result2?.toString()
         holder.tvStatus.text = "FINE" // Update as necessary
         holder.ivEdit.setOnClickListener {
             // handle edit action
