@@ -5,6 +5,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -342,6 +343,7 @@ class LeagueAdapter(
         }
 
         play.setOnClickListener {
+            Log.d("team.id","team id:${UserInfo.team_id}")
             UserInfo.team_id?.let { it1 -> addTeamToALeague(league, it1) }
             popupWindow.dismiss()
         }
@@ -382,6 +384,8 @@ class LeagueAdapter(
 
                                         // Aggiungi il team alla classifica della lega
                                         addTeamToLeagueTable(leagueUid, teamUid)
+                                        // Aggiorna il campo tournaments del team
+                                        updateTeamTournaments(teamUid, leagueUid)
 
                                         notifyDataSetChanged()
                                     }
@@ -409,6 +413,18 @@ class LeagueAdapter(
         }
     }
 
+    private fun updateTeamTournaments(teamUid: String, leagueUid: String?) {
+        val teamRef = dbRef.child("teams").child(teamUid)
+        val tournamentStats = TournamentStats()  // Inizializza tutte le stats a 0
+
+        teamRef.child("tournaments").child(leagueUid!!).setValue(tournamentStats)
+            .addOnSuccessListener {
+                Toast.makeText(context, "Team tournaments updated successfully!", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(context, "Failed to update team tournaments: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
     private fun addTeamToLeagueTable(leagueUid: String?, teamUid: String) {
         if (leagueUid != null) {
             val teamRef = dbRef.child("teams").child(teamUid)

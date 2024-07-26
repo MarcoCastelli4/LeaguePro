@@ -25,7 +25,6 @@ class LeagueTableFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Inizializzazione di Firebase Database
         database = FirebaseDatabase.getInstance().reference
         leagueUid = arguments?.getString("league_id")
     }
@@ -36,62 +35,68 @@ class LeagueTableFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_table_league, container, false)
         leagueTableLayout = view.findViewById(R.id.leagueTableLayout)
+        return view
+    }
 
-        // Verifica se il contesto è disponibile
-        if (context == null) {
-            return view
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        if (leagueUid != null) {
+            loadTeamsAndTournamentStats()
+        } else {
+            addNoDataRow()
         }
+    }
 
-        leagueUid?.let { id ->
-            // Imposta il listener per i dati della classifica
-            val leagueTableRef = database.child("league_table").child(id)
-            leagueTableRef.addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    // Assicurati che il contesto sia disponibile
-                    if (isAdded) {
-                        leagueTableLayout.removeAllViews() // Rimuove tutte le righe esistenti
+    private fun loadTeamsAndTournamentStats() {
+        leagueUid?.let { leagueId ->
+            val leagueTeamsRef = database.child("leagues_team").orderByChild("league_id").equalTo(leagueId)
 
-                        val leagueTable = snapshot.getValue(LeagueTable::class.java)
-                        if (leagueTable != null) {
-                            // Aggiungi l'intestazione della tabella
-                            addTableHeader()
+            leagueTeamsRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(dataSnapshot: DataSnapshot) {
+                    val teamIds = mutableListOf<String>()
+                    for (snapshot in dataSnapshot.children) {
+                        val teamId = snapshot.child("team_id").getValue(String::class.java)
+                        if (teamId != null) {
+                            teamIds.add(teamId)
+                        }
+                    }
+                    loadTournamentStatsForTeams(teamIds, leagueId)
+                }
 
-                            // Verifica se il torneo ID è disponibile
-                            leagueUid?.let { tid ->
-                                // Aggiungi i dati delle squadre per il torneo specificato
-                                leagueTable.getSortedTeams(tid).forEach { team ->
-                                    addTeamRow(team, tid)
-                                }
-                            } ?: run {
-                                // Messaggio se il torneo ID non è disponibile
-                                addNoDataRow()
-                            }
-                        } else {
-                            // Mostra un messaggio se la classifica non è disponibile
-                            addNoDataRow()
+                override fun onCancelled(databaseError: DatabaseError) {
+                    Toast.makeText(requireContext(), "Failed to retrieve teams: ${databaseError.message}", Toast.LENGTH_LONG).show()
+                }
+            })
+        }
+    }
+
+    private fun loadTournamentStatsForTeams(teamIds: List<String>, leagueId: String) {
+        val teamStatsRef = database.child("teams")
+        val teamStatsList = mutableListOf<Pair<Team, TournamentStats>>()
+
+        teamIds.forEach { teamId ->
+            teamStatsRef.child(teamId).addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(dataSnapshot: DataSnapshot) {
+                    val team = dataSnapshot.getValue(Team::class.java)
+                    team?.let {
+                        val tournamentStats = it.tournaments?.get(leagueId) ?: TournamentStats()
+                        teamStatsList.add(Pair(it, tournamentStats))
+
+                        if (teamStatsList.size == teamIds.size) {
+                            // Tutti i dati sono stati caricati, ora ordina e visualizza
+                            displayLeagueTable(teamStatsList)
                         }
                     }
                 }
 
-                override fun onCancelled(error: DatabaseError) {
-                    // Assicurati che il contesto sia disponibile
-                    if (isAdded) {
-                        Toast.makeText(requireContext(), "Failed to retrieve data: ${error.message}", Toast.LENGTH_LONG).show()
-                    }
+                override fun onCancelled(databaseError: DatabaseError) {
+                    Toast.makeText(requireContext(), "Failed to retrieve team stats: ${databaseError.message}", Toast.LENGTH_LONG).show()
                 }
             })
-        } ?: run {
-            // Assicurati che il contesto sia disponibile
-            if (isAdded) {
-                Toast.makeText(requireContext(), "League ID not available", Toast.LENGTH_LONG).show()
-            }
         }
-
-        return view
     }
 
     private fun addTableHeader() {
-        // Assicurati che il contesto sia non null
         val context = requireContext()
         val headerRow = TableRow(context)
 
@@ -109,20 +114,33 @@ class LeagueTableFragment : Fragment() {
         leagueTableLayout.addView(headerRow)
     }
 
-    private fun addTeamRow(team: Team, tournamentId: String) {
-        // Assicurati che il contesto sia non null
+    private fun displayLeagueTable(teamStatsList: List<Pair<Team, TournamentStats>>) {
+        // Ordina la lista per punti in modo decrescente
+        val sortedTeamStatsList = teamStatsList.sortedByDescending { it.second.points }
+
+        // Rimuovi tutte le righe esistenti nella tabella
+        leagueTableLayout.removeAllViews()
+
+        // Aggiungi l'intestazione della tabella
+        addTableHeader()
+
+        // Aggiungi le righe per ciascun team ordinato
+        sortedTeamStatsList.forEach { (team, stats) ->
+            updateLeagueTable(team, stats)
+        }
+    }
+    private fun updateLeagueTable(team: Team, tournamentStats: TournamentStats) {
         val context = requireContext()
         val row = TableRow(context)
 
-        val stats = team.tournaments?.get(tournamentId) ?: TournamentStats()
         val values = listOf(
             team.name ?: "N/A",
-            stats.points.toString(),
-            stats.wins.toString(),
-            stats.draws.toString(),
-            stats.losses.toString(),
-            stats.goalsFor.toString(),
-            stats.goalsAgainst.toString()
+            tournamentStats.points.toString(),
+            tournamentStats.wins.toString(),
+            tournamentStats.draws.toString(),
+            tournamentStats.losses.toString(),
+            tournamentStats.goalsFor.toString(),
+            tournamentStats.goalsAgainst.toString()
         )
 
         values.forEach { value ->
@@ -139,7 +157,6 @@ class LeagueTableFragment : Fragment() {
     }
 
     private fun addNoDataRow() {
-        // Assicurati che il contesto sia non null
         val context = requireContext()
         val noDataRow = TableRow(context)
         val noDataTextView = TextView(context).apply {
@@ -152,3 +169,4 @@ class LeagueTableFragment : Fragment() {
         leagueTableLayout.addView(noDataRow)
     }
 }
+

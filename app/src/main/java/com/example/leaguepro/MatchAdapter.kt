@@ -16,13 +16,18 @@ import com.example.leaguepro.R
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.MutableData
+import com.google.firebase.database.Transaction
 import com.google.firebase.database.ValueEventListener
 
 class MatchAdapter(
     private val matchList: List<Match>,
     private val leagueOwnerId: String,
-    private val leagueId: String) : RecyclerView.Adapter<MatchAdapter.MatchViewHolder>() {
+    private val leagueId: String,
+    private val mDbRef: DatabaseReference
+) : RecyclerView.Adapter<MatchAdapter.MatchViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MatchViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.card_match_layout, parent, false)
@@ -80,6 +85,7 @@ class MatchAdapter(
                             match.result1 = team1Score
                             match.result2 = team2Score
                             notifyItemChanged(matchList.indexOf(match)) // Refresh item
+                            updateLeagueTableAfterMatch(match,leagueId)
                         }
                         .addOnFailureListener {
                             Toast.makeText(context, "Failed to update results.", Toast.LENGTH_SHORT).show()
@@ -92,6 +98,63 @@ class MatchAdapter(
             .create()
             .show()
     }
+
+    private fun updateLeagueTableAfterMatch(match: Match, leagueId: String) {
+        val team1Id = match.team1?.id ?: return
+        val team2Id = match.team2?.id ?: return
+
+        val matchResult1 = match.result1 ?: return
+        val matchResult2 = match.result2 ?: return
+
+        // Calcola i punti
+        val points1 = when {
+            matchResult1 == matchResult2 -> 1 // Pareggio
+            matchResult1 > matchResult2 -> 3 // Vittoria per team1
+            else -> 0 // Vittoria per team2
+        }
+
+        val points2 = when {
+            matchResult1 == matchResult2 -> 1 // Pareggio
+            matchResult1 < matchResult2 -> 3 // Vittoria per team2
+            else -> 0 // Vittoria per team1
+        }
+
+        // Aggiorna nel database
+        updateTeamStatsInLeague(team1Id, leagueId, points1, matchResult1, matchResult2)
+        updateTeamStatsInLeague(team2Id, leagueId, points2, matchResult2, matchResult1)
+    }
+
+    private fun updateTeamStatsInLeague(teamId: String, leagueId: String, points: Int, goalsFor: Int, goalsAgainst: Int) {
+        val teamRef = mDbRef.child("teams").child(teamId).child("tournaments").child(leagueId)
+
+        teamRef.runTransaction(object : Transaction.Handler {
+            override fun doTransaction(mutableData: MutableData): Transaction.Result {
+                val currentStats = mutableData.getValue(TournamentStats::class.java) ?: TournamentStats()
+
+                val updatedStats = currentStats.copy(
+                    points = (currentStats.points ?: 0) + points,
+                    wins = (currentStats.wins ?: 0) + if (points == 3) 1 else 0,
+                    draws = (currentStats.draws ?: 0) + if (points == 1) 1 else 0,
+                    losses = (currentStats.losses ?: 0) + if (points == 0) 1 else 0,
+                    goalsFor = (currentStats.goalsFor ?: 0) + goalsFor,
+                    goalsAgainst = (currentStats.goalsAgainst ?: 0) + goalsAgainst
+                )
+
+                mutableData.value = updatedStats
+                return Transaction.success(mutableData)
+            }
+
+            override fun onComplete(error: DatabaseError?, committed: Boolean, currentData: DataSnapshot?) {
+                if (error != null) {
+                    Log.e("DatabaseUpdate", "Failed to update team $teamId in league $leagueId: ${error.message}")
+                } else {
+                    Log.d("DatabaseUpdate", "Team $teamId in league $leagueId updated successfully")
+                }
+            }
+        })
+    }
+
+
     override fun getItemCount(): Int = matchList.size
     class MatchViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val tvStage: TextView = itemView.findViewById(R.id.tv_stage)

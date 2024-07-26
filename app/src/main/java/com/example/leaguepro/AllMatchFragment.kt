@@ -88,7 +88,7 @@ class AllMatchFragment : Fragment() {
     }
     private fun setupRecyclerView() {
         val leagueId = arguments?.getString(LEAGUE_ID_KEY) ?: return
-        matchAdapter = MatchAdapter(matchList, leagueOwnerId, leagueId)
+        matchAdapter = MatchAdapter(matchList, leagueOwnerId, leagueId,mDbRef)
         recyclerView.adapter = matchAdapter
     }
     private fun updateVisibilityCreateCalendar() {
@@ -336,7 +336,7 @@ class AllMatchFragment : Fragment() {
                         }.filterNotNull()
 
                         val team = Team(
-                            id = teamMap["uid"] as String?,
+                            id = teamMap["id"] as String?,
                             name = teamMap["name"] as String?,
                             team_manager = teamMap["team_manager"] as String?,
                             players = ArrayList(playersMap)

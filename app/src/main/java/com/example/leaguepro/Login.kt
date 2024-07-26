@@ -129,7 +129,7 @@ class Login : AppCompatActivity() {
                     if (snapshot.exists()) {
                         // Trova il team associato all'ID dell'utente corrente
                         for (teamSnapshot in snapshot.children) {
-                            val id = teamSnapshot.child("uid").getValue().toString()
+                            val id = teamSnapshot.child("id").getValue().toString()
                             if (id != "") {
                                 // Aggiorna variabile globale
                                 UserInfo.team_id = id
