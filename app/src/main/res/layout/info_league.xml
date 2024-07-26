@@ -68,36 +68,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Create Calendar and Add ImageView -->
-    <LinearLayout
-        android:id="@+id/create_calendar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="end"
-        android:visibility="gone"
-        android:paddingEnd="16dp"
-        android:paddingBottom="16dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <TextView
-            android:id="@+id/text_create_calendar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Create Calendar"
-            android:textColor="@android:color/black"
-            android:layout_marginEnd="8dp" />
-
-        <ImageView
-            android:id="@+id/add_calendar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/add"
-            android:contentDescription="Add"
-            android:clickable="true"
-            android:focusable="true" />
-    </LinearLayout>
 
     <!-- Layout for Chat Button -->
     <LinearLayout

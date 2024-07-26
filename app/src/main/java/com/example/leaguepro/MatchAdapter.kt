@@ -37,20 +37,15 @@ class MatchAdapter(
         holder.tvTeam1Score.text = match.result1?.toString()
         holder.tvTeam2.text = match.team2?.name
         holder.tvTeam2Score.text = match.result2?.toString()
-        // Update the status visibility
-        if (match.result1 != null && match.result2 != null) {
-            holder.tvStatus.visibility = View.VISIBLE
-        } else {
-            holder.tvStatus.visibility = View.GONE
-        }
+        holder.tvStatus.visibility = if (match.result1 != null && match.result2 != null) View.VISIBLE else View.GONE
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         if (userId == leagueOwnerId) {
-            holder.btn_edit.visibility = View.VISIBLE
-            holder.btn_edit.setOnClickListener {
+            holder.btnEdit.visibility = View.VISIBLE
+            holder.btnEdit.setOnClickListener {
                 showEditDialog(holder.itemView.context, match)
             }
         } else {
-            holder.btn_edit.visibility = View.GONE
+            holder.btnEdit.visibility = View.GONE
         }
     }
     private fun showEditDialog(context: Context, match: Match) {
@@ -106,6 +101,6 @@ class MatchAdapter(
         val tvTeam2: TextView = itemView.findViewById(R.id.tv_team2)
         val tvTeam2Score: TextView = itemView.findViewById(R.id.tv_team2_score)
         val tvStatus: TextView = itemView.findViewById(R.id.tv_status)
-        val btn_edit: ImageView = itemView.findViewById(R.id.iv_edit)
+        val btnEdit: ImageView = itemView.findViewById(R.id.iv_edit)
     }
 }
