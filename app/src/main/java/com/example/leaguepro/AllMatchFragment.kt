@@ -134,35 +134,6 @@ class AllMatchFragment : Fragment() {
                         "Team Name: ${team.name}"
                     )
                 }
-                /*   // Create a test league and teams for testing
-                                        val pl: ArrayList<Player> = ArrayList()
-                                        val leagueProva = League(
-                         "1",
-                                            "A",
-                                            "",
-                                            1.0f,
-                                            "",
-                                            "",
-                                            "",
-                                            "",
-                                            "15/07/2024 - 30/07/2024",
-                                            "1",
-                                            8.0f
-                                        )
-                                        val teamA = Team("1", "A", "A", pl)
-                                        val teamB = Team("2", "B", "A", pl)
-                                        val teamC = Team("3", "C", "A", pl)
-                                        val teamD = Team("4", "D", "A", pl)
-                                        val teamE = Team("5", "E", "A", pl)
-                                        val teamF = Team("6", "F", "A", pl)
-                                        val teamG = Team("7", "G", "A", pl)
-                                        val teamH = Team("8", "H", "A", pl)
-
-                                        val teamListProva =
-                                            arrayListOf(teamA, teamB, teamC, teamD, teamE, teamF, teamG, teamH)
-
-                                        calendar = createCalendar(leagueProva, teamListProva)
-                */
                 calendar = createCalendar(league!!, teams)
 
                 // Print the calendar matches in the log

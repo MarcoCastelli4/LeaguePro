@@ -4,21 +4,17 @@ package com.example.leaguepro
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
-import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
 import android.widget.Button
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.RatingBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.fragment.app.FragmentManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -343,7 +339,6 @@ class LeagueAdapter(
         }
 
         play.setOnClickListener {
-            Log.d("team.id","team id:${UserInfo.team_id}")
             UserInfo.team_id?.let { it1 -> addTeamToALeague(league, it1) }
             popupWindow.dismiss()
         }

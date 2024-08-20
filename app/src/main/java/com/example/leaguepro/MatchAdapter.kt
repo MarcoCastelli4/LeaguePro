@@ -12,7 +12,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
-import com.example.leaguepro.R
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -20,7 +19,6 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.MutableData
 import com.google.firebase.database.Transaction
-import com.google.firebase.database.ValueEventListener
 
 class MatchAdapter(
     private val matchList: List<Match>,
@@ -73,6 +71,11 @@ class MatchAdapter(
                 val team2Score = etTeam2Score.text.toString().toIntOrNull()
 
                 if (team1Score != null && team2Score != null) {
+                    // Prima di aggiornare i risultati, rimuovi l'effetto dei risultati precedenti
+                    if (match.result1 != null && match.result2 != null) {
+                        updateLeagueTableAfterMatch(match, leagueId, isReverting = true)
+                    }
+
                     val matchUpdates = mapOf(
                         "result1" to team1Score,
                         "result2" to team2Score
@@ -85,7 +88,7 @@ class MatchAdapter(
                             match.result1 = team1Score
                             match.result2 = team2Score
                             notifyItemChanged(matchList.indexOf(match)) // Refresh item
-                            updateLeagueTableAfterMatch(match,leagueId)
+                            updateLeagueTableAfterMatch(match,leagueId,false)
                         }
                         .addOnFailureListener {
                             Toast.makeText(context, "Failed to update results.", Toast.LENGTH_SHORT).show()
@@ -99,7 +102,7 @@ class MatchAdapter(
             .show()
     }
 
-    private fun updateLeagueTableAfterMatch(match: Match, leagueId: String) {
+    private fun updateLeagueTableAfterMatch(match: Match, leagueId: String, isReverting: Boolean) {
         val team1Id = match.team1?.id ?: return
         val team2Id = match.team2?.id ?: return
 
@@ -119,12 +122,12 @@ class MatchAdapter(
             else -> 0 // Vittoria per team1
         }
 
-        // Aggiorna nel database
-        updateTeamStatsInLeague(team1Id, leagueId, points1, matchResult1, matchResult2)
-        updateTeamStatsInLeague(team2Id, leagueId, points2, matchResult2, matchResult1)
+        // Se stiamo aggiornando match già inserito, togli i punti invece di aggiungerli
+        updateTeamStatsInLeague(team1Id, leagueId, if (isReverting) -points1 else points1, matchResult1, matchResult2, isReverting)
+        updateTeamStatsInLeague(team2Id, leagueId, if (isReverting) -points2 else points2, matchResult2, matchResult1, isReverting)
     }
 
-    private fun updateTeamStatsInLeague(teamId: String, leagueId: String, points: Int, goalsFor: Int, goalsAgainst: Int) {
+    private fun updateTeamStatsInLeague(teamId: String, leagueId: String, points: Int, goalsFor: Int, goalsAgainst: Int, isReverting: Boolean) {
         val teamRef = mDbRef.child("teams").child(teamId).child("tournaments").child(leagueId)
 
         teamRef.runTransaction(object : Transaction.Handler {
@@ -133,11 +136,11 @@ class MatchAdapter(
 
                 val updatedStats = currentStats.copy(
                     points = (currentStats.points ?: 0) + points,
-                    wins = (currentStats.wins ?: 0) + if (points == 3) 1 else 0,
-                    draws = (currentStats.draws ?: 0) + if (points == 1) 1 else 0,
-                    losses = (currentStats.losses ?: 0) + if (points == 0) 1 else 0,
-                    goalsFor = (currentStats.goalsFor ?: 0) + goalsFor,
-                    goalsAgainst = (currentStats.goalsAgainst ?: 0) + goalsAgainst
+                    wins = (currentStats.wins ?: 0) + if (points == 3 && !isReverting) 1 else if (points == -3 && isReverting) -1 else 0,
+                    draws = (currentStats.draws ?: 0) + if (points == 1 && !isReverting) 1 else if (points == -1 && isReverting) -1 else 0,
+                    losses = (currentStats.losses ?: 0) + if (points == 0 && !isReverting) 1 else if (points == 0 && isReverting) -1 else 0,
+                    goalsFor = (currentStats.goalsFor ?: 0) + if (isReverting) -goalsFor else goalsFor,
+                    goalsAgainst = (currentStats.goalsAgainst ?: 0) + if (isReverting) -goalsAgainst else goalsAgainst
                 )
 
                 mutableData.value = updatedStats
