@@ -5,17 +5,100 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <EditText
-        android:id="@+id/et_team1_score"
+    <!-- Campo per il punteggio di Team 1 e Team 2 con i nomi delle squadre -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Team 1 Score"
-        android:inputType="number"/>
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="16dp">
 
-    <EditText
-        android:id="@+id/et_team2_score"
+        <TextView
+            android:id="@+id/tv_team1_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Team 1"
+            android:textSize="18sp"
+            android:textColor="@color/black"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:paddingEnd="8dp"/>
+
+        <EditText
+            android:id="@+id/et_team1_score"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:hint="0"
+            android:inputType="number"
+            android:textSize="18sp"
+            android:gravity="center"
+            android:layout_marginHorizontal="4dp"
+            android:layout_weight="0.1"
+            android:background="@drawable/score_background"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=":"
+            android:textSize="18sp"
+            android:textColor="@color/black"
+            android:paddingHorizontal="4dp"/>
+
+        <EditText
+            android:id="@+id/et_team2_score"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:hint="0"
+            android:inputType="number"
+            android:textSize="18sp"
+            android:gravity="center"
+            android:layout_marginHorizontal="4dp"
+            android:layout_weight="0.1"
+            android:background="@drawable/score_background"/>
+
+        <TextView
+            android:id="@+id/tv_team2_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Team 2"
+            android:textSize="18sp"
+            android:textColor="@color/black"
+            android:layout_weight="1"
+            android:gravity="start"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:paddingStart="8dp"/>
+    </LinearLayout>
+
+
+
+    <!-- Pulsanti Save e Cancel vicini -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Team 2 Score"
-        android:inputType="number"/>
+        android:orientation="horizontal"
+        android:gravity="end">
+
+        <Button
+            android:id="@+id/cancel_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Cancel"
+            android:textSize="16sp"
+            android:textColor="@android:color/black"
+            android:backgroundTint="@color/secondary" />
+
+        <Button
+            android:id="@+id/save_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="@color/primary"
+            android:text="Save"
+            android:textSize="16sp"/>
+    </LinearLayout>
 </LinearLayout>

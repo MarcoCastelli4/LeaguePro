@@ -55,18 +55,26 @@ class MatchAdapter(
         val dialogView = LayoutInflater.from(context).inflate(R.layout.edit_match, null)
         val etTeam1Score = dialogView.findViewById<EditText>(R.id.et_team1_score)
         val etTeam2Score = dialogView.findViewById<EditText>(R.id.et_team2_score)
+        val team1name= dialogView.findViewById<TextView>(R.id.tv_team1_name)
+        val team2name= dialogView.findViewById<TextView>(R.id.tv_team2_name)
+        val saveButton = dialogView.findViewById<Button>(R.id.save_button)
+        val cancelButton = dialogView.findViewById<Button>(R.id.cancel_button)
 
-        // Pre-fill current scores
+        // Pre-fill current teams and scores
+        team1name.setText(match.team1?.name)
+        team2name.setText(match.team2?.name)
         etTeam1Score.setText(match.result1?.toString())
         etTeam2Score.setText(match.result2?.toString())
 
         val database = FirebaseDatabase.getInstance()
         val matchesRef = database.getReference("matches").child(leagueId).child(match.id!!) // Navigate to the correct node
 
-        AlertDialog.Builder(context)
+        val dialog= AlertDialog.Builder(context)
             .setTitle("Edit Match Result")
             .setView(dialogView)
-            .setPositiveButton("Save") { dialog, _ ->
+            .create()
+
+            saveButton.setOnClickListener {
                 val team1Score = etTeam1Score.text.toString().toIntOrNull()
                 val team2Score = etTeam2Score.text.toString().toIntOrNull()
 
@@ -83,23 +91,30 @@ class MatchAdapter(
 
                     matchesRef.updateChildren(matchUpdates)
                         .addOnSuccessListener {
-                            Toast.makeText(context, "Results updated successfully!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Results updated successfully!",
+                                Toast.LENGTH_SHORT
+                            ).show()
                             // Update the local match object
                             match.result1 = team1Score
                             match.result2 = team2Score
                             notifyItemChanged(matchList.indexOf(match)) // Refresh item
-                            updateLeagueTableAfterMatch(match,leagueId,false)
+                            updateLeagueTableAfterMatch(match, leagueId, false)
                         }
                         .addOnFailureListener {
-                            Toast.makeText(context, "Failed to update results.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Failed to update results.", Toast.LENGTH_SHORT)
+                                .show()
                         }
                 }
 
                 dialog.dismiss()
             }
-            .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
-            .create()
-            .show()
+        // Gestione del click sul pulsante Cancel
+        cancelButton.setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.show()
     }
 
     private fun updateLeagueTableAfterMatch(match: Match, leagueId: String, isReverting: Boolean) {

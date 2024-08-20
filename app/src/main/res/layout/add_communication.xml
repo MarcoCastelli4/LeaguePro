@@ -11,7 +11,7 @@
         android:id="@+id/dialog_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Add Communication"
+        android:text="Send Communication"
         android:textSize="20sp"
         android:textColor="@color/black"
         android:textStyle="bold"
@@ -36,27 +36,30 @@
         android:orientation="horizontal"
         android:gravity="end">
 
-        <androidx.appcompat.widget.AppCompatButton
-            android:id="@+id/btn_save"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Save"
-            android:textColor="@android:color/white"
-            android:backgroundTint="@color/Save"
-            android:padding="12dp"
-            android:textSize="16sp"
-            android:layout_marginEnd="8dp"/>
-
         <!-- Pulsante Cancel -->
-        <androidx.appcompat.widget.AppCompatButton
+        <Button
             android:id="@+id/btn_cancel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Cancel"
             android:textColor="@android:color/black"
-            android:backgroundTint="@color/Cancel"
+            android:backgroundTint="@color/secondary"
             android:padding="12dp"
             android:textSize="16sp"/>
+
+        <Button
+            android:id="@+id/btn_save"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save"
+            android:textColor="@android:color/white"
+            android:backgroundTint="@color/primary"
+            android:padding="12dp"
+            android:textSize="16sp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"/>
+
+
     </LinearLayout>
 
 

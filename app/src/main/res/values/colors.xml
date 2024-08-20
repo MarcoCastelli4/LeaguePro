@@ -7,6 +7,4 @@
     <color name="form">#FFFBFB</color>
     <color name="md_theme_light_onPrimary">#FFFFFF</color>
     <color name="delete">#D22B2B</color>
-    <color name="Save">#4CAF50</color> <!-- Verde per Save -->
-    <color name="Cancel">#F44336</color> <!-- Rosso per Cancel -->
 </resources>
