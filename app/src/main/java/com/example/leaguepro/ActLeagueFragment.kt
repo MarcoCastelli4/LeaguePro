@@ -1,6 +1,7 @@
 package com.example.leaguepro
 
 import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -149,8 +150,6 @@ class ActLeagueFragment : Fragment() {
     }
 
     private fun setupView(view: View) {
-        // aggiungere che il calendario non sia già stato creato e che siamo al giorno di inizio del torneo
-
         layout_communication = view.findViewById(R.id.layout_add_communication)
         btn_addCommunication = view.findViewById(R.id.add_communication)
         layout_chat=view.findViewById(R.id.layout_chat)
@@ -178,10 +177,10 @@ class ActLeagueFragment : Fragment() {
 
 
     private fun openChat() {
-        // Qui devi inserire il codice per aprire la chat
-        // Puoi usare un Intent per avviare una nuova attività o aprire un fragment
-        //val intent = Intent(requireContext(), ChatActivity::class.java)
-        //startActivity(intent)
+        // codice per aprire la chat
+        val intent = Intent(requireContext(), ChatActivity::class.java)
+        intent.putExtra("league_id", leagueId)
+        startActivity(intent)
     }
     private fun showAddCommunicationDialog() {
         // Inflazione del layout del dialogo
