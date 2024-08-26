@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="10dp">
 
@@ -31,19 +32,17 @@
             android:drawablePadding="10dp"
             android:hint="Search for a league"
             android:padding="10dp"
-            android:textColorHint="#808080"
-            />
+            android:textColorHint="#808080" />
 
         <!-- LinearLayout for the map icon and text -->
         <LinearLayout
             android:id="@+id/map_layout"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
             android:layout_alignParentEnd="true"
             android:gravity="center_horizontal"
-            android:layout_centerVertical="true"
-            android:layout_weight="1">
+            android:orientation="vertical"
+            android:layout_centerVertical="true">
 
             <ImageView
                 android:id="@+id/map_icon"
@@ -58,7 +57,7 @@
                 android:text="Map"
                 android:textSize="14sp"
                 android:textStyle="bold"
-                android:textColor="#246EE9"/>
+                android:textColor="#246EE9" />
         </LinearLayout>
     </RelativeLayout>
 
@@ -67,5 +66,11 @@
         android:layout_width="match_parent"
         android:layout_height="2dp"
         android:background="#D9D9D9" />
-</LinearLayout>
 
+    <!-- Mappa nascosta inizialmente -->
+    <org.osmdroid.views.MapView
+        android:id="@+id/osmMapView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"/>
+</LinearLayout>

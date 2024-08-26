@@ -1,7 +1,12 @@
 package com.example.leaguepro
 
-import android.content.Intent
+import android.app.Dialog
+import org.osmdroid.config.Configuration
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 import android.os.Bundle
+import android.preference.PreferenceManager
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
@@ -10,12 +15,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-
 
 
 // TODO: Rename parameter arguments, choose names that match
@@ -39,6 +45,7 @@ class AllLeagueFragment : Fragment() {
     private lateinit var mDbRef: DatabaseReference
     private lateinit var mAuth: FirebaseAuth
     private lateinit var searchView: EditText
+    private lateinit var osmMapView: MapView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,9 +53,7 @@ class AllLeagueFragment : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
         }
-
     }
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -82,14 +87,14 @@ class AllLeagueFragment : Fragment() {
 
         mAuth = FirebaseAuth.getInstance()
         // creo collegamento con il database
-        mDbRef = FirebaseDatabase.getInstance().getReference()
+        mDbRef = FirebaseDatabase.getInstance().getReference("leagues")
 
         leagueList= ArrayList()
         leagueRecyclerView = view.findViewById(R.id.leagueRecyclerView)
         leagueRecyclerView.layoutManager = LinearLayoutManager(context)
-        leagueRecyclerView.hasFixedSize()
+        leagueRecyclerView.setHasFixedSize(true)
 
-        adapter = LeagueAdapter(requireContext(),leagueList,mDbRef,mAuth,true){ league ->
+        adapter = LeagueAdapter(requireContext(),leagueList,mDbRef,true){ league ->
             // Listener per il click su una card della RecyclerView
             val fragment = ActLeagueFragment.newInstance(league)
             parentFragmentManager.beginTransaction()
@@ -113,7 +118,7 @@ class AllLeagueFragment : Fragment() {
         })
 
 
-        mDbRef.child("leagues").addValueEventListener(object: ValueEventListener {
+        mDbRef.addValueEventListener(object: ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 leagueList.clear()
                 for (postSnapshot in snapshot.children) {
@@ -125,6 +130,7 @@ class AllLeagueFragment : Fragment() {
                     }
                 }
                 adapter.notifyDataSetChanged()
+                addMarkers(leagueList)
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -132,6 +138,72 @@ class AllLeagueFragment : Fragment() {
             }
         })
 
+        // MAPPA: Configurazione OSM
+        Configuration.getInstance().load(context, PreferenceManager.getDefaultSharedPreferences(context))
+
+        osmMapView = view.findViewById(R.id.osmMapView)
+        osmMapView.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
+
+        // Centra la mappa su una posizione iniziale
+        osmMapView.controller.setZoom(15.0)
+        osmMapView.controller.setCenter(GeoPoint(45.539855914185615, 10.221154248320246))  // Centra su Brescia
+
+        // Listener per il click sull'icona della mappa
+        val mapIcon = view.findViewById<ImageView>(R.id.map_icon)
+        mapIcon.setOnClickListener {
+            osmMapView.visibility = View.VISIBLE
+        }
+
+    }
+
+    private fun addMarkers(leagueList: ArrayList<League>) {
+        osmMapView.overlays.clear() // Clear existing markers
+        for (league in leagueList) {
+            val location = GeoPoint(league.latitude ?: 0.0, league.longitude ?: 0.0)
+            val marker = Marker(osmMapView)
+            marker.position = location
+            marker.title = league.name
+            marker.icon = resources.getDrawable(R.drawable.location, null)
+            // listener per clic sul marker
+            marker.setOnMarkerClickListener { _, _ ->
+                showLeagueDetailsDialog(league)
+                true // True indica che l'evento è stato gestito
+            }
+            osmMapView.overlays.add(marker)
+        }
+        osmMapView.invalidate()
+    }
+
+    private fun showLeagueDetailsDialog(league: League) {
+        val dialog = Dialog(requireContext())
+        dialog.setContentView(R.layout.league_more)
+
+        // Inizializzazione view del dialog
+        val leagueNameTextView: TextView = dialog.findViewById(R.id.more_league_description)
+        val addressTextView: TextView = dialog.findViewById(R.id.edt_more_address)
+        val playingPeriodTextView: TextView = dialog.findViewById(R.id.edt_more_playing_period)
+        val entryFeeTextView: TextView = dialog.findViewById(R.id.edt_more_euro)
+        val restrictionsTextView: TextView = dialog.findViewById(R.id.edt_more_info)
+        val closeButton: ImageView = dialog.findViewById(R.id.btn_close)
+
+        // Popolazione campi con i dati della lega
+        leagueNameTextView.text = league.name
+        addressTextView.text = league.address
+        playingPeriodTextView.text = league.playingPeriod
+        entryFeeTextView.text = league.entryfee
+        restrictionsTextView.text = league.restrictions
+
+        // chiusura del dialog
+        closeButton.setOnClickListener {
+            dialog.dismiss()
+        }
+        // mostra dialog
+        dialog.show()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        osmMapView.onDetach()
     }
 
     private fun filter(text: String) {

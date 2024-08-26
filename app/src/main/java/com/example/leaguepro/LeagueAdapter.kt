@@ -4,7 +4,6 @@ package com.example.leaguepro
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
-import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -16,7 +15,6 @@ import android.widget.RatingBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
@@ -31,7 +29,6 @@ class LeagueAdapter(
     val context: Context,
     var leagueList: ArrayList<League>,
     val dbRef: DatabaseReference,
-    val mAuth: FirebaseAuth,
     val fromAllLeague: Boolean,
     val listener: (League) -> Unit
 ) : RecyclerView.Adapter<LeagueAdapter.LeagueViewHolder>() {
@@ -43,8 +40,6 @@ class LeagueAdapter(
         val binButton: ImageView = itemView.findViewById(R.id.bin)
         val moreButton: ImageView = itemView.findViewById(R.id.more)
         val availablePlaces: TextView=itemView.findViewById(R.id.numberAvailable)
-        val cardLayout: View = itemView.findViewById(R.id.card_league)
-
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LeagueViewHolder {
@@ -332,7 +327,6 @@ class LeagueAdapter(
         entry.text = league.entryfee
         restrictions.text = league.restrictions
 
-        // Optional: If you want to add a close button in the popup
         val closeButton: ImageView = popupView.findViewById(R.id.btn_close)
         closeButton.setOnClickListener {
             popupWindow.dismiss()

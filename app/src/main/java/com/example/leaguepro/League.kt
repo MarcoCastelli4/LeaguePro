@@ -1,15 +1,12 @@
 package com.example.leaguepro
 
-import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.ktx.Firebase
-import java.time.LocalDate
-import java.util.Date
-
 class League {
 
     var uid: String?=null
     var name: String? = null
     var address: String? = null
+    var latitude: Double? = null
+    var longitude: Double? = null
     var level: Float? = null
     var description: String? = null
     var entryfee: String? = null
@@ -20,10 +17,23 @@ class League {
     var maxNumberTeam: Float?= null
 
 
-    constructor(uid: String?,name: String?, address: String?, level: Float?,description: String?,entryfee: String?,prize: String?,restrictions: String?,playingPeriod: String?,leagueManager: String?,maxNumberTeam: Float?) {
+    constructor(
+        uid: String?,
+        name: String?, address: String?,
+        latitude: Double,
+        longitude: Double, level: Float?,
+        description: String?,
+        entryfee: String?,
+        prize: String?,
+        restrictions: String?,
+        playingPeriod: String?,
+        leagueManager: String?,
+        maxNumberTeam: Float?) {
         this.uid=uid
         this.name = name
         this.address=address
+        this.latitude=latitude
+        this.longitude=longitude
         this.level=level
         this.description=description
         this.entryfee=entryfee
@@ -36,7 +46,7 @@ class League {
 
     // Costruttore vuoto richiesto da Firebase
     constructor() : this(
-        null,null, null, 0.0f, null, null, null, null, null, null,0.0f
+        null,null, null,0.0,0.0, 0.0f, null, null, null, null, null, null,0.0f
     )
 
 

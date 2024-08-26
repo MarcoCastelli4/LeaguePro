@@ -2,6 +2,7 @@ package com.example.leaguepro
 
 
 import android.app.Activity
+import android.app.Dialog
 import android.os.Build
 import android.os.Bundle
 import android.text.Editable
@@ -26,6 +27,14 @@ import java.text.SimpleDateFormat
 import java.time.ZoneId
 import java.util.*
 import kotlin.collections.ArrayList
+import org.osmdroid.config.Configuration
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import android.location.Geocoder
+import java.io.IOException
+import android.preference.PreferenceManager
+import android.location.Address
 
 private const val ARG_PARAM1 = "param1"
 private const val ARG_PARAM2 = "param2"
@@ -49,6 +58,7 @@ class MyLeagueFragment : Fragment() {
     private lateinit var edtleague_playingPeriod: TextView
     private lateinit var edtleague_MaxTeamNumber:Spinner
     private lateinit var searchView: EditText
+    private lateinit var osmMapView: MapView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -101,7 +111,10 @@ class MyLeagueFragment : Fragment() {
         }
         val addLeagueIcon: ImageView = view.findViewById(R.id.add_league_icon)
         addLeagueIcon.setOnClickListener {
-            showAddLeaguePopup(view) }
+            showAddLeaguePopup(view)
+        }
+        // carica la mappa
+        loadMap(view)
 
         // Inizializza il SearchView
         searchView = view.findViewById(R.id.search_bar)
@@ -117,12 +130,81 @@ class MyLeagueFragment : Fragment() {
 
     }
 
+    private fun addMarkers(leagueList: ArrayList<League>) {
+        if (isAdded) {
+            val context = requireContext()
+            osmMapView.overlays.clear() // Clear existing markers
+            for (league in leagueList) {
+                val location = GeoPoint(league.latitude ?: 0.0, league.longitude ?: 0.0)
+                val marker = Marker(osmMapView)
+                marker.position = location
+                marker.title = league.name
+                marker.icon = context.getDrawable(R.drawable.location)
+                // listener per il clic sul marker
+                marker.setOnMarkerClickListener { _, _ ->
+                    showLeagueDetailsDialog(league)
+                    true // True indica che l'evento è stato gestito
+                }
+                osmMapView.overlays.add(marker)
+            }
+            osmMapView.invalidate()
+        } else {
+            Log.e("MyLeagueFragment", "Fragment is not added to an activity")
+        }
+    }
+    private fun showLeagueDetailsDialog(league: League) {
+        val dialog = Dialog(requireContext())
+        dialog.setContentView(R.layout.league_more)
+
+        // Inizializzazione view del dialog
+        val leagueNameTextView: TextView = dialog.findViewById(R.id.more_league_description)
+        val addressTextView: TextView = dialog.findViewById(R.id.edt_more_address)
+        val playingPeriodTextView: TextView = dialog.findViewById(R.id.edt_more_playing_period)
+        val entryFeeTextView: TextView = dialog.findViewById(R.id.edt_more_euro)
+        val restrictionsTextView: TextView = dialog.findViewById(R.id.edt_more_info)
+        val closeButton: ImageView = dialog.findViewById(R.id.btn_close)
+
+        // Popolazione campi con i dati della lega
+        leagueNameTextView.text = league.name
+        addressTextView.text = league.address
+        playingPeriodTextView.text = league.playingPeriod
+        entryFeeTextView.text = league.entryfee
+        restrictionsTextView.text = league.restrictions
+
+        // chiusura del dialog
+        closeButton.setOnClickListener {
+            dialog.dismiss()
+        }
+        // mostra dialog
+        dialog.show()
+    }
+
+
+    private fun loadMap(view: View){
+        // Configurazione OSM
+        Configuration.getInstance().load(context, PreferenceManager.getDefaultSharedPreferences(context))
+
+        osmMapView = view.findViewById(R.id.osmMapView)
+        osmMapView.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
+
+        // Centra la mappa su una posizione iniziale
+        osmMapView.controller.setZoom(15.0)
+        osmMapView.controller.setCenter(GeoPoint(45.539855914185615, 10.221154248320246))  // Centra su Brescia
+
+        // Listener per il click sull'icona della mappa
+        val mapIcon = view.findViewById<ImageView>(R.id.map_icon)
+        mapIcon.setOnClickListener {
+            osmMapView.visibility = View.VISIBLE
+            val addLeagueContainer: ConstraintLayout = view.findViewById(R.id.add_league_container)
+            addLeagueContainer.visibility = View.GONE
+        }
+    }
     private fun setupLeagueRecyclerView(view: View) {
         leagueList = ArrayList()
         leagueRecyclerView = view.findViewById(R.id.leagueRecyclerView)
         leagueRecyclerView.layoutManager = LinearLayoutManager(context)
         leagueRecyclerView.setHasFixedSize(true)
-        adapter = LeagueAdapter(requireContext(), leagueList,mDbRef,mAuth,false){ league ->
+        adapter = LeagueAdapter(requireContext(), leagueList,mDbRef,false){ league ->
             // Listener per il click su una card della RecyclerView
             val fragment = ActLeagueFragment.newInstance(league)
             parentFragmentManager.beginTransaction()
@@ -153,6 +235,7 @@ class MyLeagueFragment : Fragment() {
                     }
                 }
                 adapter.notifyDataSetChanged()
+                addMarkers(leagueList)
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -185,6 +268,7 @@ class MyLeagueFragment : Fragment() {
                                             leagueList.add(it)
                                         }
                                         adapter.notifyDataSetChanged()
+                                        addMarkers(leagueList)
                                     }
 
                                     override fun onCancelled(error: DatabaseError) {
@@ -213,8 +297,6 @@ class MyLeagueFragment : Fragment() {
 
         // Nascondi la RecyclerView
         (context as Activity).findViewById<RecyclerView>(R.id.leagueRecyclerView).visibility = View.GONE
-
-
 
         val inflater = LayoutInflater.from(context)
         val popupView = inflater.inflate(R.layout.add_league, null)
@@ -246,6 +328,7 @@ class MyLeagueFragment : Fragment() {
         edtleague_restrictions = popupView.findViewById(R.id.edt_league_restrictions)
         edtleague_playingPeriod = popupView.findViewById(R.id.edt_playing_period)
         edtleague_MaxTeamNumber=popupView.findViewById(R.id.edt_maxTeamNumber)
+        osmMapView = popupView.findViewById(R.id.osmMapView)
         mAuth = FirebaseAuth.getInstance()
 
         ArrayAdapter.createFromResource(
@@ -259,6 +342,44 @@ class MyLeagueFragment : Fragment() {
 
         val btnPlayingPeriod: ImageView = popupView.findViewById(R.id.btn_playing_period)
         btnPlayingPeriod.setOnClickListener { datePickerDialog(edtleague_playingPeriod) }
+
+        val btnSearchAddress: Button = popupView.findViewById(R.id.btn_search_address)
+        btnSearchAddress.setOnClickListener {
+            val address = edtleague_address.text.toString()
+            if (address.isNotEmpty()) {
+                searchAddressAndShowMarker(address)
+            } else {
+                Toast.makeText(context, "Please enter an address", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    private fun searchAddressAndShowMarker(address: String) {
+        val geocoder = Geocoder(requireContext())
+        val addresses: List<Address>? = try {
+            geocoder.getFromLocationName(address, 1)
+        } catch (e: IOException) {
+            e.printStackTrace()
+            null
+        }
+        if (!addresses.isNullOrEmpty()) {
+            val location = addresses[0]
+            val latLng = GeoPoint(location.latitude, location.longitude)
+
+            // Configura la mappa per mostrare la posizione
+            osmMapView.controller.setZoom(15.0)
+            osmMapView.controller.setCenter(latLng)
+            osmMapView.visibility = View.VISIBLE
+
+            // Aggiungi un marker sulla mappa
+            val marker = Marker(osmMapView)
+            marker.position = latLng
+            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+            osmMapView.overlays.clear()  // Rimuovi marker esistenti
+            osmMapView.overlays.add(marker)
+            osmMapView.invalidate()
+        } else {
+            Toast.makeText(context, "Address not found", Toast.LENGTH_SHORT).show()
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -271,7 +392,6 @@ class MyLeagueFragment : Fragment() {
     }
 
     private fun datePickerDialog(edtPlayingPeriod: TextView) {
-        val today = MaterialDatePicker.todayInUtcMilliseconds()
         val constraintsBuilder = CalendarConstraints.Builder()
             .setValidator(DateValidatorPointForward.now())
 
@@ -294,6 +414,8 @@ class MyLeagueFragment : Fragment() {
     private fun saveLeague(popupWindow: PopupWindow) {
         val leaguename = edtleague_name.text.toString()
         val leagueaddress = edtleague_address.text.toString()
+        val latitude = osmMapView.mapCenter.latitude
+        val longitude = osmMapView.mapCenter.longitude
         val leaguelevel = edtleague_level.rating
         val leaguedescription = edtleague_description.text.toString()
         val leagueentryfee = edtleague_entryfee.text.toString()
@@ -319,6 +441,8 @@ class MyLeagueFragment : Fragment() {
         addLeagueToDatabase(
             leaguename,
             leagueaddress,
+            latitude,
+            longitude,
             leaguelevel,
             leaguedescription,
             leagueentryfee,
@@ -335,7 +459,6 @@ class MyLeagueFragment : Fragment() {
     private fun isValidDateRange(dateRange: String): Boolean {
         // Define the regex pattern for the date range
         val dateRangePattern = Regex("""\b\d{2}/\d{2}/\d{4} - \d{2}/\d{2}/\d{4}\b""")
-
         // Check if the input string matches the pattern
         return dateRangePattern.matches(dateRange)
     }
@@ -383,7 +506,7 @@ class MyLeagueFragment : Fragment() {
             edtleague_playingPeriod.error = "Please enter a valid date range (dd/MM/yyyy - dd/MM/yyyy)"
             valid = false
         }
-        if (numberOfDay(leagueplayingPeriod!!)!!*R.integer.matchForDays<calculateTotalMatches(leagueMaxTeamNumber!!.toInt())) {
+        if (numberOfDay(leagueplayingPeriod)!!*R.integer.matchForDays<calculateTotalMatches(leagueMaxTeamNumber!!.toInt())) {
             edtleague_playingPeriod.error = "Select a wider data range"
             valid = false
         }
@@ -420,6 +543,8 @@ class MyLeagueFragment : Fragment() {
     private fun addLeagueToDatabase(
         name: String?,
         place: String?,
+        latitude: Double,
+        longitude: Double,
         level: Float?,
         description: String?,
         entry: String?,
@@ -433,7 +558,7 @@ class MyLeagueFragment : Fragment() {
         val leagueId = mDbRef.child("leagues").push().key
 
         if (leagueId != null) {
-            val league = League(leagueId, name, place, level, description, entry, prize, restrictions, playingPeriod, leagueManager,maxTeamNumber)
+            val league = League(leagueId, name, place,latitude,longitude, level, description, entry, prize, restrictions, playingPeriod, leagueManager,maxTeamNumber)
             // Set the value for the new node
             mDbRef.child("leagues").child(leagueId).setValue(league)
                 .addOnSuccessListener {
