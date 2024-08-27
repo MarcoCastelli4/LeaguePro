@@ -145,7 +145,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Select playing period"
-                android:textSize="20sp"/>
+                android:layout_marginEnd="50dp"
+                android:textSize="17sp"/>
 
             <ImageView
                 android:id="@+id/btn_playing_period"
@@ -166,7 +167,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Number of team"
-                android:textSize="20sp"/>
+                android:textSize="17sp"/>
 
             <Spinner
                 android:id="@+id/edt_maxTeamNumber"

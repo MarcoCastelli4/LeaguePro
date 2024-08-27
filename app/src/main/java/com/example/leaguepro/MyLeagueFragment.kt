@@ -112,7 +112,11 @@ class MyLeagueFragment : Fragment() {
             fetchTeamLeaguesFromDatabase()
         }
         val addLeagueIcon: ImageView = view.findViewById(R.id.add_league_icon)
+        val addLeagueText: TextView = view.findViewById(R.id.add_league_text)
         addLeagueIcon.setOnClickListener {
+            showAddLeaguePopup(view)
+        }
+        addLeagueText.setOnClickListener {
             showAddLeaguePopup(view)
         }
         // Inizializza il SearchView
@@ -126,7 +130,6 @@ class MyLeagueFragment : Fragment() {
                 filter(s.toString())
             }
         })
-
     }
 
     private fun addMarkers(leagueList: ArrayList<League>) {
@@ -178,8 +181,7 @@ class MyLeagueFragment : Fragment() {
         // mostra dialog
         dialog.show()
     }
-
-
+    // carica la mappa
     private fun loadMap(view: View){
         // Configurazione OSM
         Configuration.getInstance().load(context, PreferenceManager.getDefaultSharedPreferences(context))
@@ -221,6 +223,7 @@ class MyLeagueFragment : Fragment() {
         mDbRef = FirebaseDatabase.getInstance().getReference()
     }
 
+    // carica le leghe che gestisce il LeagueManager
     private fun fetchLeaguesFromDatabase() {
         mDbRef.child("leagues").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -245,7 +248,7 @@ class MyLeagueFragment : Fragment() {
             }
         })
     }
-
+    // carica le leghe a cui partecipa il TeamManager
     private fun fetchTeamLeaguesFromDatabase() {
 
         // First, fetch all leagues associated with the current user's team
@@ -319,6 +322,7 @@ class MyLeagueFragment : Fragment() {
 
     }
 
+    // inizializza campi per inserimento lega
     private fun initializePopupFields(popupView: View) {
         edtleague_name = popupView.findViewById(R.id.edt_league_name)
         edtleague_address = popupView.findViewById(R.id.edt_address)
@@ -383,6 +387,7 @@ class MyLeagueFragment : Fragment() {
         }
     }
 
+    // gestione bottoni di close e save nell' add league
     @RequiresApi(Build.VERSION_CODES.O)
     private fun setupPopupListeners(popupView: View, popupWindow: PopupWindow) {
         val btnClose: ImageView = popupView.findViewById(R.id.btn_close)
@@ -411,6 +416,7 @@ class MyLeagueFragment : Fragment() {
         datePicker.show(requireFragmentManager(), "DATE_PICKER")
     }
 
+    // salva la lega nell'add league
     @RequiresApi(Build.VERSION_CODES.O)
     private fun saveLeague(popupWindow: PopupWindow) {
         val leaguename = edtleague_name.text.toString()
@@ -492,32 +498,46 @@ class MyLeagueFragment : Fragment() {
         if (leagueentryfee!!.isEmpty()) {
             edtleague_entryfee.error = "Please enter League entry fee"
             valid = false
+        } else if (leagueentryfee.toDoubleOrNull() == null) {
+            edtleague_entryfee.error = "Please enter a valid number"
+            valid = false
         }
         if (leagueprize!!.isEmpty()) {
-            edtleague_prize.error = "Please enter League prize"
+            edtleague_prize.error = "Please enter League first prize"
             valid = false
+        } else if(leagueprize.toDoubleOrNull() == null) {
+            edtleague_prize.error = "Please enter a valid number"
+            valid=false
         }
         if (leaguerestrictions!!.isEmpty()) {
             edtleague_restrictions.error = "Please enter League restrictions"
             valid = false
         }
-
         // Specific validation for the playing period field
-        if (!isValidDateRange(leagueplayingPeriod!!)) {
+        if (leagueplayingPeriod != "Select playing period") {
+            if (!isValidDateRange(leagueplayingPeriod!!)) {
+                edtleague_playingPeriod.error = "Please enter a valid date range (dd/MM/yyyy - dd/MM/yyyy)"
+                valid = false
+            } else if (numberOfDay(leagueplayingPeriod)!! * resources.getInteger(R.integer.matchForDays) < calculateTotalMatches(leagueMaxTeamNumber!!.toInt())) {
+                edtleague_playingPeriod.error = "Select a wider date range"
+                valid = false
+            } else {
+                // Rimuove l'errore se il campo è valido
+                edtleague_playingPeriod.error = null
+            }
+        } else {
             edtleague_playingPeriod.error = "Please enter a valid date range (dd/MM/yyyy - dd/MM/yyyy)"
-            valid = false
-        }
-        if (numberOfDay(leagueplayingPeriod)!!*R.integer.matchForDays<calculateTotalMatches(leagueMaxTeamNumber!!.toInt())) {
-            edtleague_playingPeriod.error = "Select a wider data range"
             valid = false
         }
 
         return valid
     }
 
+    // calcola numero di match in un torneo
     private fun calculateTotalMatches(numTeams: Int): Int {
         return (numTeams * (numTeams - 1)) / 2
     }
+    // calcola numero di giorni durata torneo
     @RequiresApi(Build.VERSION_CODES.O)
     private fun numberOfDay(playingPeriod: String): Int? {
         val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())

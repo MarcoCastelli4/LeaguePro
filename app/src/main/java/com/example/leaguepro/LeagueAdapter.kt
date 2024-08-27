@@ -102,6 +102,7 @@ class LeagueAdapter(
         }
     }
 
+    // dialogo di conferma per rimozione lega nei 2 tipi di utenti
     private fun showConfirmationDialog(league: League) {
         val builder = AlertDialog.Builder(context, R.style.CustomAlertDialog)
         // Leaugue manager cancella il torneo
@@ -118,7 +119,7 @@ class LeagueAdapter(
                 dialog.dismiss()
             }
         }
-        // Team managaer si disiiscrive al torneo
+        // Team manager si disiscrive al torneo
         if (UserInfo.userType==context.getString(R.string.TeamManager)){
             builder.setTitle("Unsubscribe confirm")
             builder.setMessage("Are you sure to unsubscribe from ${league.name}?")
@@ -134,6 +135,7 @@ class LeagueAdapter(
         }
         builder.create().show()
     }
+    //disiscrizione team da una lega
     private fun removeTeamFromLeague(league: League, teamUid: String) {
         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         val today = Calendar.getInstance().time
@@ -157,6 +159,7 @@ class LeagueAdapter(
                                         dataSnapshot.ref.removeValue().addOnCompleteListener { task ->
                                             if (task.isSuccessful) {
                                                 league.uid?.let { removeTeamFromLeagueTable(it, teamName) }
+                                                removeTeamTournaments(teamId,leagueId)
                                                 leagueList.remove(league)
                                                 notifyDataSetChanged()
                                                 Toast.makeText(context, "Team removed from league successfully!", Toast.LENGTH_SHORT).show()
@@ -204,9 +207,7 @@ class LeagueAdapter(
         })
     }
 
-
-
-
+    // rimozione team dal nodo leagueTable associato ad una lega
     private fun removeTeamFromLeagueTable(leagueId: String, teamName: String) {
         val leagueTableRef = dbRef.child("league_table").child(leagueId)
         leagueTableRef.addListenerForSingleValueEvent(object : ValueEventListener {
@@ -231,6 +232,7 @@ class LeagueAdapter(
         })
     }
 
+    // rimozione lega da Db
     private fun removeLeagueFromDatabase(league: League) {
         val leagueId = league.uid!!
         val leaguesTeamRef = dbRef.child("leagues_team")
@@ -263,6 +265,7 @@ class LeagueAdapter(
         })
     }
 
+    //mostra info sulla lega
     private fun showLeagueInfoPopup(league: League) {
         val popupView = LayoutInflater.from(context).inflate(R.layout.league_more, null)
         val popupWindow = PopupWindow(
@@ -337,6 +340,7 @@ class LeagueAdapter(
             popupWindow.dismiss()
         }
     }
+    // aggiunge un team ad una lega
     private fun addTeamToALeague(league: League, teamUid: String) {
         // Verifica che la data di inizio del torneo sia maggiore di oggi
         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -374,7 +378,7 @@ class LeagueAdapter(
                                         // Aggiungi il team alla classifica della lega
                                         addTeamToLeagueTable(leagueUid, teamUid)
                                         // Aggiorna il campo tournaments del team
-                                        updateTeamTournaments(teamUid, leagueUid)
+                                        initializeTeamTournaments(teamUid, leagueUid)
 
                                         notifyDataSetChanged()
                                     }
@@ -401,19 +405,7 @@ class LeagueAdapter(
             Toast.makeText(context, "Error parsing date: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
-
-    private fun updateTeamTournaments(teamUid: String, leagueUid: String?) {
-        val teamRef = dbRef.child("teams").child(teamUid)
-        val tournamentStats = TournamentStats()  // Inizializza tutte le stats a 0
-
-        teamRef.child("tournaments").child(leagueUid!!).setValue(tournamentStats)
-            .addOnSuccessListener {
-                Toast.makeText(context, "Team tournaments updated successfully!", Toast.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(context, "Failed to update team tournaments: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-    }
+    //aggiunge un team alla classifica alla sua iscrizione
     private fun addTeamToLeagueTable(leagueUid: String?, teamUid: String) {
         if (leagueUid != null) {
             val teamRef = dbRef.child("teams").child(teamUid)
@@ -453,6 +445,26 @@ class LeagueAdapter(
                     Toast.makeText(context, "Failed to retrieve team data: ${error.message}", Toast.LENGTH_LONG).show()
                 }
             })
+        }
+    }
+
+    // inizializza le statistiche(classifica) di un team all'interno di una lega alla sua iscrizione
+    private fun initializeTeamTournaments(teamUid: String, leagueUid: String?) {
+        val teamRef = dbRef.child("teams").child(teamUid)
+        val tournamentStats = TournamentStats()  // Inizializza tutte le stats a 0
+
+        teamRef.child("tournaments").child(leagueUid!!).setValue(tournamentStats)
+            .addOnSuccessListener {
+                Toast.makeText(context, "Team tournaments initialized successfully!", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(context, "Failed to initialized team tournaments: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+    // rimuove le statistiche del team alla disiscrizione dal torneo
+    private fun removeTeamTournaments(teamUid: String, leagueUid: String?){
+        if (leagueUid != null) {
+            dbRef.child("teams").child(teamUid).child("tournaments").child(leagueUid).removeValue()
         }
     }
     fun setData(newLeagueList: ArrayList<League>) {
