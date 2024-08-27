@@ -1,6 +1,7 @@
 package com.example.leaguepro
 
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
@@ -51,10 +52,11 @@ class LeagueAdapter(
         return leagueList.size
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: LeagueViewHolder, position: Int) {
         val currentLeague = leagueList[position]
         holder.textName.text = currentLeague.name
-        holder.textPrize.text = currentLeague.prize
+        holder.textPrize.text = "${currentLeague.prize} €"
         holder.floatRating.rating = currentLeague.level!!
 
         // Effettua una query al database per ottenere il numero di team iscritti
@@ -266,6 +268,7 @@ class LeagueAdapter(
     }
 
     //mostra info sulla lega
+    @SuppressLint("SetTextI18n")
     private fun showLeagueInfoPopup(league: League) {
         val popupView = LayoutInflater.from(context).inflate(R.layout.league_more, null)
         val popupWindow = PopupWindow(
@@ -322,12 +325,14 @@ class LeagueAdapter(
         val address: TextView = popupView.findViewById(R.id.edt_more_address)
         val period: TextView = popupView.findViewById(R.id.edt_more_playing_period)
         val entry: TextView = popupView.findViewById(R.id.edt_more_euro)
+        val prize: TextView = popupView.findViewById(R.id.edt_first_prize)
         val restrictions: TextView = popupView.findViewById(R.id.edt_more_info)
 
         description.text = league.description
         address.text = league.address
         period.text = league.playingPeriod
-        entry.text = league.entryfee
+        entry.text = "${league.entryfee}€ for registration"
+        prize.text=  "${league.prize}€ for the winner"
         restrictions.text = league.restrictions
 
         val closeButton: ImageView = popupView.findViewById(R.id.btn_close)

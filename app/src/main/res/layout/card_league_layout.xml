@@ -3,11 +3,10 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_marginTop="10dp"
-    android:layout_marginLeft="30dp"
-    android:layout_marginRight="30dp"
+    android:layout_marginLeft="20dp"
+    android:layout_marginRight="20dp"
     android:background="@drawable/container"
-    android:id="@+id/card_league"
-   >
+    android:id="@+id/card_league">
 
     <RelativeLayout
         android:id="@+id/lay_league"
@@ -16,8 +15,7 @@
         android:layout_alignParentEnd="true"
         android:layout_marginLeft="10dp"
         android:layout_marginTop="10dp"
-        android:layout_marginEnd="10dp"
-        android:layout_marginRight="10dp">
+        android:layout_marginEnd="10dp">
 
         <ImageView
             android:id="@+id/cup"
@@ -32,6 +30,7 @@
             android:layout_marginStart="10dp"
             android:layout_marginTop="10dp"
             android:layout_toEndOf="@+id/cup"
+            android:layout_toStartOf="@id/bin"
             android:text="League Maclodio"
             android:textSize="24sp"
             android:textStyle="bold" />
@@ -54,8 +53,7 @@
         android:layout_below="@id/lay_league"
         android:layout_alignParentEnd="true"
         android:layout_marginLeft="10dp"
-        android:layout_marginEnd="10dp"
-        android:layout_marginRight="10dp">
+        android:layout_marginEnd="10dp">
 
         <TextView
             android:id="@+id/text_level"
@@ -75,7 +73,6 @@
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
             android:layout_alignParentEnd="true"
-            android:layout_marginTop="0dp"
             android:layout_marginEnd="2dp"
             android:numStars="5"
             android:stepSize="0.5"
@@ -127,9 +124,7 @@
         android:layout_below="@id/lay_prize"
         android:layout_alignParentEnd="true"
         android:layout_marginLeft="10dp"
-        android:layout_marginEnd="10dp"
-        android:layout_marginRight="10dp"
-        android:layout_marginVertical="0dp">
+        android:layout_marginEnd="10dp">
 
         <TextView
             android:id="@+id/text_numberAvailable"
