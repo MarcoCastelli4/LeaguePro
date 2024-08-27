@@ -35,6 +35,7 @@ import android.location.Geocoder
 import java.io.IOException
 import android.preference.PreferenceManager
 import android.location.Address
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 
 private const val ARG_PARAM1 = "param1"
 private const val ARG_PARAM2 = "param2"
@@ -99,7 +100,8 @@ class MyLeagueFragment : Fragment() {
 
         setupFirebase()
         setupLeagueRecyclerView(view)
-
+        // carica la mappa
+        loadMap(view)
         // load league create by league manager
         if (UserInfo.userType==getString(R.string.LeagueManager)){
             fetchLeaguesFromDatabase()
@@ -113,9 +115,6 @@ class MyLeagueFragment : Fragment() {
         addLeagueIcon.setOnClickListener {
             showAddLeaguePopup(view)
         }
-        // carica la mappa
-        loadMap(view)
-
         // Inizializza il SearchView
         searchView = view.findViewById(R.id.search_bar)
         searchView.addTextChangedListener(object : TextWatcher {
@@ -131,6 +130,7 @@ class MyLeagueFragment : Fragment() {
     }
 
     private fun addMarkers(leagueList: ArrayList<League>) {
+        view?.let { loadMap(it) }
         if (isAdded) {
             val context = requireContext()
             osmMapView.overlays.clear() // Clear existing markers
@@ -185,7 +185,8 @@ class MyLeagueFragment : Fragment() {
         Configuration.getInstance().load(context, PreferenceManager.getDefaultSharedPreferences(context))
 
         osmMapView = view.findViewById(R.id.osmMapView)
-        osmMapView.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
+        osmMapView.setTileSource(TileSourceFactory.MAPNIK)
+        osmMapView.setMultiTouchControls(true)
 
         // Centra la mappa su una posizione iniziale
         osmMapView.controller.setZoom(15.0)
@@ -230,7 +231,7 @@ class MyLeagueFragment : Fragment() {
                         if (it.leagueManager == mAuth.currentUser?.uid) {
                             leagueList.add(it)
                         } else {
-                            Log.d("FirebaseData", "Invalid league data: $it")
+                            Log.d("FirebaseData", "non sei il gestore della lega: $it")
                         }
                     }
                 }

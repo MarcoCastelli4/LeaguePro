@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 
 
 // TODO: Rename parameter arguments, choose names that match
@@ -87,7 +88,7 @@ class AllLeagueFragment : Fragment() {
 
         mAuth = FirebaseAuth.getInstance()
         // creo collegamento con il database
-        mDbRef = FirebaseDatabase.getInstance().getReference("leagues")
+        mDbRef = FirebaseDatabase.getInstance().getReference()
 
         leagueList= ArrayList()
         leagueRecyclerView = view.findViewById(R.id.leagueRecyclerView)
@@ -104,7 +105,7 @@ class AllLeagueFragment : Fragment() {
         }
         leagueRecyclerView.adapter = adapter
 
-
+        loadMap(view)
         // Inizializza il SearchView
         searchView = view.findViewById(R.id.search_bar)
         searchView.addTextChangedListener(object : TextWatcher {
@@ -116,9 +117,7 @@ class AllLeagueFragment : Fragment() {
                 filter(s.toString())
             }
         })
-
-
-        mDbRef.addValueEventListener(object: ValueEventListener {
+        mDbRef.child("leagues").addValueEventListener(object: ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 leagueList.clear()
                 for (postSnapshot in snapshot.children) {
@@ -138,11 +137,15 @@ class AllLeagueFragment : Fragment() {
             }
         })
 
-        // MAPPA: Configurazione OSM
+    }
+
+    private fun loadMap(view: View){
+        // Configurazione OSM
         Configuration.getInstance().load(context, PreferenceManager.getDefaultSharedPreferences(context))
 
         osmMapView = view.findViewById(R.id.osmMapView)
-        osmMapView.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
+        osmMapView.setTileSource(TileSourceFactory.MAPNIK)
+        osmMapView.setMultiTouchControls(true)
 
         // Centra la mappa su una posizione iniziale
         osmMapView.controller.setZoom(15.0)
@@ -153,25 +156,29 @@ class AllLeagueFragment : Fragment() {
         mapIcon.setOnClickListener {
             osmMapView.visibility = View.VISIBLE
         }
-
     }
-
     private fun addMarkers(leagueList: ArrayList<League>) {
-        osmMapView.overlays.clear() // Clear existing markers
-        for (league in leagueList) {
-            val location = GeoPoint(league.latitude ?: 0.0, league.longitude ?: 0.0)
-            val marker = Marker(osmMapView)
-            marker.position = location
-            marker.title = league.name
-            marker.icon = resources.getDrawable(R.drawable.location, null)
-            // listener per clic sul marker
-            marker.setOnMarkerClickListener { _, _ ->
-                showLeagueDetailsDialog(league)
-                true // True indica che l'evento è stato gestito
+        view?.let { loadMap(it) }
+        if (isAdded){
+            val context = requireContext()
+            osmMapView.overlays.clear() // Clear existing markers
+            for (league in leagueList) {
+                val location = GeoPoint(league.latitude ?: 0.0, league.longitude ?: 0.0)
+                val marker = Marker(osmMapView)
+                marker.position = location
+                marker.title = league.name
+                marker.icon = context.getDrawable(R.drawable.location)
+                // listener per clic sul marker
+                marker.setOnMarkerClickListener { _, _ ->
+                    showLeagueDetailsDialog(league)
+                    true // True indica che l'evento è stato gestito
+                }
+                osmMapView.overlays.add(marker)
             }
-            osmMapView.overlays.add(marker)
+            osmMapView.invalidate()
+        } else {
+            Log.e("MyLeagueFragment", "Fragment is not added to an activity")
         }
-        osmMapView.invalidate()
     }
 
     private fun showLeagueDetailsDialog(league: League) {
