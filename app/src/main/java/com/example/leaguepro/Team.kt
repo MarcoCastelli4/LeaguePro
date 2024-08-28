@@ -3,7 +3,7 @@ data class Team(
     val id: String? = null,
     val name: String? = null,
     val team_manager: String? = null,
-    val players: List<Player>? = listOf(),
+    val players: Map<String,Player>? = mapOf(),
     val tournaments: Map<String, TournamentStats>? = mapOf() // Modificato
 )
 data class TournamentStats (

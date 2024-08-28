@@ -1,18 +1,15 @@
 package com.example.leaguepro
 
-class Player {
-    var name: String?=null
-    var role: String? = null
-    var birthday: String? = null
-    var uid: String? = null
+data class Player (
+    var name: String?=null,
+    var role: String? = null,
+    var birthday: String? = null,
+    var uid: String? = null,
+    var tournaments: Map<String,PlayerPerformance>? = mapOf()
+)
+    data class PlayerPerformance (
+        val goals: Int? = 0,
+        val yellowCards: Int? = 0,
+        val redCards: Int? = 0)
 
 
-    constructor() {}
-
-    constructor(name: String?, role: String?,birthday: String?, uid: String?) {
-        this.name = name
-        this.role = role
-        this.birthday = birthday
-        this.uid = uid
-    }
-}

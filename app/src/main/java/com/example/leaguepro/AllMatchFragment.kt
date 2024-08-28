@@ -299,20 +299,10 @@ class AllMatchFragment : Fragment() {
                     if (teamId != null) {
                         val teamSnapshot = mDbRef.child("teams").child(teamId).get().await()
                         // Handle the team snapshot data
-                        val teamMap = teamSnapshot.getValue<Map<String, Any>>() ?: continue
-
-                        // Extract and convert the players map
-                        val playersMap = teamSnapshot.child("players").children.map { playerSnapshot ->
-                            playerSnapshot.getValue(Player::class.java)
-                        }.filterNotNull()
-
-                        val team = Team(
-                            id = teamMap["id"] as String?,
-                            name = teamMap["name"] as String?,
-                            team_manager = teamMap["team_manager"] as String?,
-                            players = ArrayList(playersMap)
-                        )
-                        teamsList.add(team)
+                        val team = teamSnapshot.getValue(Team::class.java)
+                        if (team != null) {
+                            teamsList.add(team)
+                        }
                     }
                 }
 

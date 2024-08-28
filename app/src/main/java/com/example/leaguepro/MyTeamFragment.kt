@@ -300,7 +300,7 @@ class MyTeamFragment : Fragment() {
         teamId?.let {
             val playerId = mDbRef.child("teams").child(it).child("players").push().key
             if (playerId != null) {
-                val player = Player(uid = playerId, name = name, role = role, birthday = birthday)
+                val player = Player(uid = playerId, name = name, role = role, birthday = birthday, tournaments= mapOf())
                 mDbRef.child("teams").child(it).child("players").child(playerId).setValue(player)
                     .addOnSuccessListener {
                         onSuccess()
@@ -319,7 +319,7 @@ class MyTeamFragment : Fragment() {
                 id = teamId,
                 name = name,
                 team_manager = managerId,
-                players = arrayListOf(),
+                players = mapOf(),
                 tournaments = mapOf()
             )
             mDbRef.child("teams").child(teamId).setValue(team)

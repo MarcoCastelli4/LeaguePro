@@ -196,7 +196,8 @@ class PlayerAdapter(
                 uid = player.uid,
                 name = playerName.text.toString(),
                 role = playerRole,
-                birthday = playerBirthday.text.toString()
+                birthday = playerBirthday.text.toString(),
+                tournaments= player.tournaments
             )
             updatePlayerInDatabase(updatedPlayer)
             popupWindow.dismiss()

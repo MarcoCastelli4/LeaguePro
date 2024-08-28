@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -127,7 +128,8 @@ class LeagueAdapter(
             builder.setMessage("Are you sure to unsubscribe from ${league.name}?")
 
             builder.setPositiveButton("Unsubscribe") { dialog, _ ->
-                UserInfo.team_id?.let { removeTeamFromLeague(league, it) }
+                UserInfo.team_id?.let { removeTeamFromLeague(league, it)
+                }
                 dialog.dismiss()
             }
 
@@ -162,6 +164,7 @@ class LeagueAdapter(
                                             if (task.isSuccessful) {
                                                 league.uid?.let { removeTeamFromLeagueTable(it, teamName) }
                                                 removeTeamTournaments(teamId,leagueId)
+                                                removeLeaguePerformanceFromTeam(teamId,leagueId)
                                                 leagueList.remove(league)
                                                 notifyDataSetChanged()
                                                 Toast.makeText(context, "Team removed from league successfully!", Toast.LENGTH_SHORT).show()
@@ -382,8 +385,12 @@ class LeagueAdapter(
 
                                         // Aggiungi il team alla classifica della lega
                                         addTeamToLeagueTable(leagueUid, teamUid)
-                                        // Aggiorna il campo tournaments del team
+                                        // Inizializza il campo tournaments del team
                                         initializeTeamTournaments(teamUid, leagueUid)
+                                        //Inizializza le performance dei giocatori nel torneo
+                                        if (leagueUid != null) {
+                                            initializePlayersPerformance(teamUid,leagueUid)
+                                        }
 
                                         notifyDataSetChanged()
                                     }
@@ -466,12 +473,80 @@ class LeagueAdapter(
                 Toast.makeText(context, "Failed to initialized team tournaments: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
+
+    fun initializePlayersPerformance(teamUid: String, leagueId: String) {
+        val teamRef = dbRef.child("teams").child(teamUid)
+
+        teamRef.child("players").addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(dataSnapshot: DataSnapshot) {
+                for (playerSnapshot in dataSnapshot.children) {
+                    val player = playerSnapshot.getValue(Player::class.java)
+                    val playerKey = playerSnapshot.key
+
+                    if (player != null && playerKey != null) {
+                        // Crea una nuova mappa per il campo tournaments del giocatore
+                        val updatedTournaments = player.tournaments?.toMutableMap() ?: mutableMapOf()
+
+                        // Imposta la performance del giocatore per il nuovo torneo
+                        updatedTournaments[leagueId] = PlayerPerformance()
+
+                        // Aggiorna il nodo del giocatore con la nuova mappa tournaments
+                        teamRef.child("players").child(playerKey).child("tournaments").setValue(updatedTournaments)
+                    }
+                }
+            }
+
+            override fun onCancelled(databaseError: DatabaseError) {
+                Log.w("FirebaseError", "loadPlayers:onCancelled", databaseError.toException())
+            }
+        })
+    }
+
     // rimuove le statistiche del team alla disiscrizione dal torneo
     private fun removeTeamTournaments(teamUid: String, leagueUid: String?){
         if (leagueUid != null) {
             dbRef.child("teams").child(teamUid).child("tournaments").child(leagueUid).removeValue()
         }
     }
+
+    fun removeLeaguePerformanceFromTeam(teamUid: String, leagueId: String?) {
+        val teamRef = dbRef.child("teams").child(teamUid)
+
+        teamRef.child("players").addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(dataSnapshot: DataSnapshot) {
+                for (playerSnapshot in dataSnapshot.children) {
+                    val playerKey = playerSnapshot.key
+
+                    // Se la chiave non è nulla, rimuovi la performance per la lega specifica
+                    if (playerKey != null) {
+                        // Costruisci il path per il campo specifico in 'tournaments'
+                        val tournamentRef =
+                            leagueId?.let {
+                                teamRef.child("players").child(playerKey).child("tournaments").child(
+                                    it
+                                )
+                            }
+
+                        // Rimuovi il campo 'leagueId' sotto 'tournaments'
+                        if (tournamentRef != null) {
+                            tournamentRef.removeValue().addOnCompleteListener { task ->
+                                if (task.isSuccessful) {
+                                    Log.d("FirebaseSuccess", "Removed performance for league $leagueId from player $playerKey")
+                                } else {
+                                    Log.w("FirebaseError", "Failed to remove performance for league $leagueId from player $playerKey", task.exception)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            override fun onCancelled(databaseError: DatabaseError) {
+                Log.w("FirebaseError", "loadPlayers:onCancelled", databaseError.toException())
+            }
+        })
+    }
+
     fun setData(newLeagueList: ArrayList<League>) {
         leagueList = newLeagueList
         notifyDataSetChanged()
