@@ -72,7 +72,81 @@
             android:paddingStart="8dp"/>
     </LinearLayout>
 
+    <!-- LinearLayout per i marcatori di Team 1 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Team 1 Scorers"
+        android:textSize="18sp"
+        android:layout_marginTop="16dp" />
 
+    <LinearLayout
+        android:id="@+id/ll_team1_scorers"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"/>
+
+    <!-- LinearLayout per i marcatori di Team 2 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Team 2 Scorers"
+        android:textSize="18sp"
+        android:layout_marginTop="16dp" />
+
+    <LinearLayout
+        android:id="@+id/ll_team2_scorers"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"/>
+
+    <!-- Campo per selezionare chi ha preso un cartellino giallo -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingEnd="8dp"
+            android:text="Yellow cards:"
+            android:textSize="18sp" />
+
+        <Spinner
+            android:id="@+id/spinner_yellow_card"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:spinnerMode="dropdown"
+            android:padding="8dp"/>
+    </LinearLayout>
+
+    <!-- Campo per selezionare chi ha preso un cartellino rosso -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Red cards:"
+            android:textSize="18sp"
+            android:paddingEnd="8dp"/>
+
+        <Spinner
+            android:id="@+id/spinner_red_card"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:spinnerMode="dropdown"
+            android:padding="8dp"/>
+    </LinearLayout>
 
     <!-- Pulsanti Save e Cancel vicini -->
     <LinearLayout
