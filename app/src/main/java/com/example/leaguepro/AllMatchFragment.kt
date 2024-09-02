@@ -17,7 +17,6 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import com.google.firebase.database.getValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -211,7 +210,11 @@ class AllMatchFragment : Fragment() {
                                 date = currentDay,
                                 time = currentTime,
                                 result1 = null,
-                                result2 = null
+                                result2 = null,
+                                scorersTeam1= listOf(),
+                                scorersTeam2= listOf(),
+                                yellowCards= listOf(),
+                                redCards= listOf()
                             )
                             matches.add(match)
                             matchId++

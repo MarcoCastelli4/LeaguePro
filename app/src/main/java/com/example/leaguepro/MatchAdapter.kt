@@ -8,17 +8,14 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.ListView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -60,7 +57,7 @@ class MatchAdapter(
             holder.btnEdit.visibility = View.GONE
         }
     }
-    //mostra dialogo per modificare risultato match
+    //mostra dialogo per modificare risultato match, marcatori e cartellini
     private fun showEditDialog(context: Context, match: Match) {
         val dialogView = LayoutInflater.from(context).inflate(R.layout.edit_match, null)
         val etTeam1Score = dialogView.findViewById<EditText>(R.id.et_team1_score)
@@ -71,15 +68,13 @@ class MatchAdapter(
         val llTeam2Scorers = dialogView.findViewById<LinearLayout>(R.id.ll_team2_scorers)
         val saveButton = dialogView.findViewById<Button>(R.id.save_button)
         val cancelButton = dialogView.findViewById<Button>(R.id.cancel_button)
+        val llYellowCards = dialogView.findViewById<LinearLayout>(R.id.ll_yellow_card_players)
+        val llRedCards = dialogView.findViewById<LinearLayout>(R.id.ll_red_card_players)
+        val btnAddYellowCard = dialogView.findViewById<Button>(R.id.btn_add_yellow_card)
+        val btnAddRedCard = dialogView.findViewById<Button>(R.id.btn_add_red_card)
 
         val database = FirebaseDatabase.getInstance()
         val matchesRef = database.getReference("matches").child(leagueId).child(match.id!!)
-        // Pre-fill current teams and scores
-        team1name.text = match.team1?.name
-        team2name.text = match.team2?.name
-        etTeam1Score.setText(match.result1?.toString())
-        etTeam2Score.setText(match.result2?.toString())
-
         // Function to create a row for a scorer
         fun createScorerRow(scorerList: MutableList<String>, llScorers: LinearLayout, team: String) {
             llScorers.removeAllViews()
@@ -111,6 +106,37 @@ class MatchAdapter(
             createScorerRow(team1Scorers, llTeam1Scorers, match.team1!!.id!!)
             createScorerRow(team2Scorers, llTeam2Scorers, match.team2!!.id!!)
         }
+        // Pre-fill current teams and scores
+        team1name.text = match.team1?.name
+        team2name.text = match.team2?.name
+        etTeam1Score.setText(match.result1?.toString())
+        etTeam2Score.setText(match.result2?.toString())
+        // Pre-popola marcatori e cartellini
+        loadPreviousMatchDetails(match) { scorersTeam1, scorersTeam2, yellowCards, redCards ->
+            // Pre-popola i marcatori
+            createScorerRow(scorersTeam1.toMutableList(), llTeam1Scorers, match.team1!!.id!!)
+            createScorerRow(scorersTeam2.toMutableList(), llTeam2Scorers, match.team2!!.id!!)
+
+            // Pre-popola i cartellini gialli
+            yellowCards.forEach { player ->
+                addCardRow(context, llYellowCards, match.team1!!.id!!, match.team2!!.id!!, "yellow",listOf(player))
+            }
+
+            // Pre-popola i cartellini rossi
+            redCards.forEach { player ->
+                addCardRow(context, llRedCards, match.team1!!.id!!, match.team2!!.id!!, "red",listOf(player))
+            }
+        }
+
+        // Gestisci aggiunta di cartellini gialli
+        btnAddYellowCard.setOnClickListener {
+            addCardRow(context, llYellowCards, match.team1!!.id!!, match.team2!!.id!!, "yellow")
+        }
+
+        // Gestisci aggiunta di cartellini rossi
+        btnAddRedCard.setOnClickListener {
+            addCardRow(context, llRedCards, match.team1!!.id!!, match.team2!!.id!!, "red")
+        }
 
         // Set up text change listeners to update scorer rows
         etTeam1Score.addTextChangedListener(object : TextWatcher {
@@ -137,45 +163,342 @@ class MatchAdapter(
         saveButton.setOnClickListener {
             val team1Score = etTeam1Score.text.toString().toIntOrNull()
             val team2Score = etTeam2Score.text.toString().toIntOrNull()
+           
+            // salvataggio goal e cartellini gialli,rossi
+            val yellowCardPlayers = mutableMapOf<String, Int>()
+            val redCardPlayers = mutableMapOf<String, Int>()
+            val scorersTeam1 = mutableListOf<String>()
+            val scorersTeam2 = mutableListOf<String>()
 
-            if (team1Score != null && team2Score != null) {
-                // Prima di aggiornare i risultati, rimuovi l'effetto dei risultati precedenti
-                if (match.result1 != null && match.result2 != null) {
-                    updateLeagueTableAfterMatch(match, leagueId, isReverting = true)
+            // Raccogliere i giocatori del team 1 che hanno segnato
+            val scorers = mutableMapOf<String, Int>()
+            for (i in 0 until llTeam1Scorers.childCount) {
+                val row = llTeam1Scorers.getChildAt(i)
+                val scorerTextView = row.findViewById<TextView>(R.id.scorer_text)
+                val scorerName = scorerTextView.text.toString()
+                if (scorerName.isNotEmpty()) {
+                    scorers[scorerName] = scorers.getOrDefault(scorerName, 0) + 1
                 }
+            }
+            // Raccogliere i giocatori del team 2 che hanno segnato
+            for (i in 0 until llTeam2Scorers.childCount) {
+                val row = llTeam2Scorers.getChildAt(i)
+                val scorerTextView = row.findViewById<TextView>(R.id.scorer_text)
+                val scorerName = scorerTextView.text.toString()
+                if (scorerName.isNotEmpty()) {
+                    scorers[scorerName] = scorers.getOrDefault(scorerName, 0) + 1
+                }
+            }
+            // Raccogliere i giocatori con cartellini gialli
+            for (i in 0 until llYellowCards.childCount) {
+                val row = llYellowCards.getChildAt(i)
+                val spinner = row.findViewById<Spinner>(R.id.spinner_players)
+                val selectedPlayerId = spinner.selectedItem as String
 
-                val matchUpdates = mapOf(
-                    "result1" to team1Score,
-                    "result2" to team2Score
-                )
+                // Aggiungi il giocatore alla mappa o incrementa il suo contatore
+                yellowCardPlayers[selectedPlayerId] = yellowCardPlayers.getOrDefault(selectedPlayerId, 0) + 1
+            }
+            // Raccogliere i giocatori con cartellini rossi
+            for (i in 0 until llRedCards.childCount) {
+                val row = llRedCards.getChildAt(i)
+                val spinner = row.findViewById<Spinner>(R.id.spinner_players)
+                val selectedPlayerId = spinner.selectedItem as String
 
-                matchesRef.updateChildren(matchUpdates)
-                    .addOnSuccessListener {
-                        Toast.makeText(
-                            context,
-                            "Results updated successfully!",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        // Update the local match object
-                        match.result1 = team1Score
-                        match.result2 = team2Score
-                        notifyItemChanged(matchList.indexOf(match)) // Refresh item
-                        updateLeagueTableAfterMatch(match, leagueId, false)
+                // Aggiungi il giocatore alla mappa o incrementa il suo contatore
+                redCardPlayers[selectedPlayerId] = redCardPlayers.getOrDefault(selectedPlayerId, 0) + 1
+            }
+            val teamRef1 = database.getReference("teams").child(match.team1!!.id!!)
+            val teamRef2 = database.getReference("teams").child(match.team2!!.id!!)
+            var operationsCount = 0
+            val totalOperations = scorers.size + yellowCardPlayers.size + redCardPlayers.size
+
+            fun saveMatchUpdates() {
+                if (team1Score != null && team2Score != null) {
+                    // Prima di aggiornare i risultati, rimuovi l'effetto dei risultati precedenti
+                    if (match.result1 != null && match.result2 != null) {
+                        updateLeagueTableAfterMatch(match, leagueId, isReverting = true)
                     }
-                    .addOnFailureListener {
-                        Toast.makeText(context, "Failed to update results.", Toast.LENGTH_SHORT)
-                            .show()
+                    val matchUpdates = mapOf(
+                        "result1" to team1Score,
+                        "result2" to team2Score,
+                        "scorersTeam1" to scorersTeam1,
+                        "scorersTeam2" to scorersTeam2,
+                        "yellowCards" to yellowCardPlayers.keys.toList(),
+                        "redCards" to redCardPlayers.keys.toList()
+                    )
+
+                    matchesRef.updateChildren(matchUpdates)
+                        .addOnSuccessListener {
+                            Toast.makeText(context, "Results updated successfully!", Toast.LENGTH_SHORT).show()
+                            // Update the local match object
+                            match.result1 = team1Score
+                            match.result2 = team2Score
+                            notifyItemChanged(matchList.indexOf(match)) // Refresh item
+                            updateLeagueTableAfterMatch(match, leagueId, false)
+                        }
+                        .addOnFailureListener {
+                            Toast.makeText(context, "Failed to update results.", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                }
+                Toast.makeText(context, "Match data updated successfully!", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            fun onOperationComplete() {
+                operationsCount++
+                if (operationsCount >= totalOperations) {
+                    saveMatchUpdates()
+                }
+            }
+            // Funzione per aggiornare le performance di un giocatore
+            fun updatePlayerStats(teamRef: DatabaseReference, playerId: String, goals: Int, yellowCards: Int, redCards: Int,callback: UpdateCallback) {
+                val playerRef =
+                    teamRef.child("players").child(playerId).child("tournaments").child(leagueId)
+                playerRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(dataSnapshot: DataSnapshot) {
+                        // Leggi i valori attuali
+                        val currentGoals =
+                            dataSnapshot.child("goals").getValue(Int::class.java) ?: 0
+                        val currentYellowCards =
+                            dataSnapshot.child("yellowCards").getValue(Int::class.java) ?: 0
+                        val currentRedCards =
+                            dataSnapshot.child("redCards").getValue(Int::class.java) ?: 0
+
+                        // Somma i valori nuovi a quelli esistenti
+                        val newGoals = currentGoals + goals
+                        val newYellowCards = currentYellowCards + yellowCards
+                        val newRedCards = currentRedCards + redCards
+
+                        // Aggiorna i valori nel database
+                        playerRef.child("goals").setValue(newGoals)
+                        playerRef.child("yellowCards").setValue(newYellowCards)
+                        playerRef.child("redCards").setValue(newRedCards)
+                        callback.onUpdateComplete() // Notifica il completamento
                     }
+                    override fun onCancelled(databaseError: DatabaseError) {
+                        Toast.makeText(context, "Error updating player stats: ${databaseError.message}", Toast.LENGTH_SHORT).show()
+                        callback.onUpdateComplete() // Notifica il completamento
+                    }
+                })
+            }
+                // Aggiorna le performance per ogni giocatore con goal
+            fun updateScorers() {
+                scorers.forEach { (playerName, goals) ->
+                    findPlayerIdByNameInTeams(listOf(match.team1!!.id!!, match.team2!!.id!!), playerName) { playerId ->
+                        val teamPlayersRef =
+                            FirebaseDatabase.getInstance().getReference("teams")
+                                .child(match.team1!!.id!!).child("players")
+
+                        // Controlla se il playerId esiste nei giocatori di questo team
+                        teamPlayersRef.child(playerId!!)
+                            .addListenerForSingleValueEvent(object : ValueEventListener {
+                                override fun onDataChange(dataSnapshot: DataSnapshot) {
+                                    if (dataSnapshot.exists()) {
+                                        // Il playerId esiste tra i giocatori di questo team
+                                        for(i in 0 until goals){ // gestione goal > 1
+                                            scorersTeam1.add(playerName)
+                                        }
+                                        updatePlayerStats(teamRef1, playerId, goals, 0, 0, object : UpdateCallback {
+                                            override fun onUpdateComplete() {
+                                                onOperationComplete()
+                                            }
+                                        })
+
+                                    } else {
+                                        for(i in 0 until goals){ // gestione goal > 1
+                                            scorersTeam2.add(playerName)
+                                        }
+                                        updatePlayerStats(teamRef2, playerId, goals, 0, 0, object : UpdateCallback {
+                                            override fun onUpdateComplete() {
+                                                onOperationComplete()
+                                            }
+                                        })
+                                    }
+                                }
+
+                                override fun onCancelled(error: DatabaseError) {
+                                    Log.e("CheckPlayer", "Database error")
+                                    onOperationComplete()
+                                }
+                            })
+                    }
+                }
             }
 
-            dialog.dismiss()
+            // Aggiorna le performance per ogni giocatore con cartellini gialli
+            fun updateYellowCards() {
+                yellowCardPlayers.forEach { (playerName, yellowCards) ->
+                    findPlayerIdByNameInTeams(
+                        listOf(match.team1!!.id!!, match.team2!!.id!!),
+                        playerName
+                    ) { playerId ->
+                        val teamPlayersRef = FirebaseDatabase.getInstance().getReference("teams")
+                            .child(match.team1!!.id!!).child("players")
+
+                        // Controlla se il playerId esiste nei giocatori di questo team
+                        teamPlayersRef.child(playerId!!)
+                            .addListenerForSingleValueEvent(object : ValueEventListener {
+                                override fun onDataChange(dataSnapshot: DataSnapshot) {
+                                    if (dataSnapshot.exists()) {
+                                        // Il playerId esiste tra i giocatori di questo team
+                                        updatePlayerStats(teamRef1, playerId, 0, yellowCards, 0, object : UpdateCallback {
+                                            override fun onUpdateComplete() {
+                                                onOperationComplete()
+                                            }
+                                        })
+                                    } else {
+                                        updatePlayerStats(teamRef2, playerId, 0, yellowCards, 0, object : UpdateCallback {
+                                            override fun onUpdateComplete() {
+                                                onOperationComplete()
+                                            }
+                                        })
+                                    }
+                                }
+
+                                override fun onCancelled(error: DatabaseError) {
+                                    Log.e("CheckPlayer", "Database error")
+                                }
+                            })
+                    }
+                }
+            }
+                // Aggiorna le performance per ogni giocatore con cartellini rossi
+            fun updateRedCards() {
+                redCardPlayers.forEach { (playerName, redCards) ->
+                    findPlayerIdByNameInTeams(
+                        listOf(match.team1!!.id!!, match.team2!!.id!!),
+                        playerName
+                    ) { playerId ->
+                        val teamPlayersRef =
+                            FirebaseDatabase.getInstance().getReference("teams")
+                                .child(match.team1!!.id!!).child("players")
+
+                        // Controlla se il playerId esiste nei giocatori di questo team
+                        teamPlayersRef.child(playerId!!)
+                            .addListenerForSingleValueEvent(object : ValueEventListener {
+                                override fun onDataChange(dataSnapshot: DataSnapshot) {
+                                    if (dataSnapshot.exists()) {
+                                        // Il playerId esiste tra i giocatori di questo team
+                                        updatePlayerStats(teamRef1, playerId, 0, 0, redCards, object : UpdateCallback {
+                                            override fun onUpdateComplete() {
+                                                onOperationComplete()
+                                            }
+                                        })
+                                    } else {
+                                        updatePlayerStats(teamRef2, playerId, 0, 0, redCards, object : UpdateCallback {
+                                            override fun onUpdateComplete() {
+                                                onOperationComplete()
+                                            }
+                                        })
+                                    }
+                                }
+
+                                override fun onCancelled(error: DatabaseError) {
+                                    Log.e("CheckPlayer", "Database error")
+                                }
+                            })
+                    }
+                }
+            }
+
+            // Avvia l'aggiornamento
+            updateScorers()
+            updateYellowCards()
+            updateRedCards()
         }
 
         cancelButton.setOnClickListener {
             dialog.dismiss()
         }
 
+
         dialog.show()
+    }
+
+
+    private fun loadPreviousMatchDetails(match: Match, callback: (List<String>, List<String>, List<String>, List<String>) -> Unit) {
+        val matchRef = FirebaseDatabase.getInstance().getReference("matches").child(leagueId).child(match.id!!)
+        matchRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val team1Scorers = snapshot.child("scorersTeam1").children.mapNotNull { it.getValue(String::class.java) }
+                val team2Scorers = snapshot.child("scorersTeam2").children.mapNotNull { it.getValue(String::class.java) }
+                val yellowCards = snapshot.child("yellowCards").children.mapNotNull { it.getValue(String::class.java) }
+                val redCards = snapshot.child("redCards").children.mapNotNull { it.getValue(String::class.java) }
+
+                callback(team1Scorers, team2Scorers, yellowCards, redCards)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("Firebase", "Failed to load previous match details", error.toException())
+                callback(emptyList(), emptyList(), emptyList(), emptyList())
+            }
+        })
+    }
+
+
+    // cerca l'id del player di una delle due squadre del match passandogli il suo nome
+    private fun findPlayerIdByNameInTeams(teamIds: List<String>, playerName: String, callback: (String?) -> Unit) {
+        val database = FirebaseDatabase.getInstance()
+        val teamRef = database.getReference("teams")
+
+        var found = false
+
+        // Controlla ogni team per trovare il giocatore
+        for (teamId in teamIds) {
+            if (found) break
+
+            val teamPlayersRef = teamRef.child(teamId).child("players")
+
+            teamPlayersRef.orderByChild("name").equalTo(playerName).addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(dataSnapshot: DataSnapshot) {
+                    if (dataSnapshot.exists()) {
+                        for (playerSnapshot in dataSnapshot.children) {
+                            val playerId = playerSnapshot.key
+                            callback(playerId)
+                            found = true
+                            return
+                        }
+                    }
+                }
+                override fun onCancelled(databaseError: DatabaseError) {
+                    Log.e("Firebase", "Error finding player ID", databaseError.toException())
+                    if (!found) callback(null)
+                }
+            })
+        }
+    }
+    private fun addCardRow(context: Context, layout: LinearLayout, team1Id: String, team2Id: String, cardType: String, prepopulatedPlayers: List<String>? = null) {
+        val rowView = LayoutInflater.from(context).inflate(R.layout.card_row, null)
+        val spinner = rowView.findViewById<Spinner>(R.id.spinner_players)
+        val btnRemove = rowView.findViewById<Button>(R.id.btn_remove)
+
+        val players = mutableListOf<String>()
+
+        getPlayersForTeam(team1Id) { team1Players ->
+            getPlayersForTeam(team2Id) { team2Players ->
+                players.addAll(team1Players)
+                players.addAll(team2Players)
+
+                val adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, players)
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                spinner.adapter = adapter
+
+                // Se ci sono giocatori pre-popolati, impostali nello spinner
+                if (prepopulatedPlayers != null && prepopulatedPlayers.isNotEmpty()) {
+                    val position = adapter.getPosition(prepopulatedPlayers.first())
+                    if (position >= 0) {
+                        spinner.setSelection(position)
+                    }
+                }
+            }
+        }
+
+        layout.addView(rowView)
+
+        // Gestione del pulsante per rimuovere la riga
+        btnRemove.setOnClickListener {
+            layout.removeView(rowView)
+        }
     }
 
     // Function to show a dialog for selecting or modifying a scorer
@@ -288,8 +611,6 @@ class MatchAdapter(
             }
         })
     }
-
-
     override fun getItemCount(): Int = matchList.size
     class MatchViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val tvStage: TextView = itemView.findViewById(R.id.tv_stage)
