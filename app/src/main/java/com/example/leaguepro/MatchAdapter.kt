@@ -167,11 +167,11 @@ class MatchAdapter(
             // salvataggio goal e cartellini gialli,rossi
             val yellowCardPlayers = mutableMapOf<String, Int>()
             val redCardPlayers = mutableMapOf<String, Int>()
+            // Raccogliere i giocatori che hanno segnato
+            val scorers = mutableMapOf<String, Int>()
             val scorersTeam1 = mutableListOf<String>()
             val scorersTeam2 = mutableListOf<String>()
 
-            // Raccogliere i giocatori del team 1 che hanno segnato
-            val scorers = mutableMapOf<String, Int>()
             for (i in 0 until llTeam1Scorers.childCount) {
                 val row = llTeam1Scorers.getChildAt(i)
                 val scorerTextView = row.findViewById<TextView>(R.id.scorer_text)
@@ -229,7 +229,7 @@ class MatchAdapter(
 
                     matchesRef.updateChildren(matchUpdates)
                         .addOnSuccessListener {
-                            Toast.makeText(context, "Results updated successfully!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Result updated successfully!", Toast.LENGTH_SHORT).show()
                             // Update the local match object
                             match.result1 = team1Score
                             match.result2 = team2Score
@@ -241,7 +241,6 @@ class MatchAdapter(
                                 .show()
                         }
                 }
-                Toast.makeText(context, "Match data updated successfully!", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
             }
             fun onOperationComplete() {
@@ -254,34 +253,30 @@ class MatchAdapter(
             fun updatePlayerStats(teamRef: DatabaseReference, playerId: String, goals: Int, yellowCards: Int, redCards: Int,callback: UpdateCallback) {
                 val playerRef =
                     teamRef.child("players").child(playerId).child("tournaments").child(leagueId)
-                playerRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onDataChange(dataSnapshot: DataSnapshot) {
-                        // Leggi i valori attuali
-                        val currentGoals =
-                            dataSnapshot.child("goals").getValue(Int::class.java) ?: 0
-                        val currentYellowCards =
-                            dataSnapshot.child("yellowCards").getValue(Int::class.java) ?: 0
-                        val currentRedCards =
-                            dataSnapshot.child("redCards").getValue(Int::class.java) ?: 0
+                playerRef.runTransaction(object : Transaction.Handler {
+                    override fun doTransaction(mutableData: MutableData): Transaction.Result {
+                        // Ottieni i valori attuali
+                        val currentGoals = mutableData.child("goals").getValue(Int::class.java) ?: 0
+                        val currentYellowCards = mutableData.child("yellowCards").getValue(Int::class.java) ?: 0
+                        val currentRedCards = mutableData.child("redCards").getValue(Int::class.java) ?: 0
 
-                        // Somma i valori nuovi a quelli esistenti
-                        val newGoals = currentGoals + goals
-                        val newYellowCards = currentYellowCards + yellowCards
-                        val newRedCards = currentRedCards + redCards
+                        // Somma i nuovi valori a quelli esistenti
+                        mutableData.child("goals").value = currentGoals + goals
+                        mutableData.child("yellowCards").value = currentYellowCards + yellowCards
+                        mutableData.child("redCards").value = currentRedCards + redCards
 
-                        // Aggiorna i valori nel database
-                        playerRef.child("goals").setValue(newGoals)
-                        playerRef.child("yellowCards").setValue(newYellowCards)
-                        playerRef.child("redCards").setValue(newRedCards)
-                        callback.onUpdateComplete() // Notifica il completamento
+                        return Transaction.success(mutableData)
                     }
-                    override fun onCancelled(databaseError: DatabaseError) {
-                        Toast.makeText(context, "Error updating player stats: ${databaseError.message}", Toast.LENGTH_SHORT).show()
-                        callback.onUpdateComplete() // Notifica il completamento
+                    override fun onComplete(databaseError: DatabaseError?, committed: Boolean, dataSnapshot: DataSnapshot?) {
+                        if (databaseError != null) {
+                            // Gestione errore
+                            Toast.makeText(context, "Error updating player stats: ${databaseError.message}", Toast.LENGTH_SHORT).show()
+                        }
+                        callback.onUpdateComplete()
                     }
                 })
             }
-                // Aggiorna le performance per ogni giocatore con goal
+            // Aggiorna le performance per ogni giocatore con goal
             fun updateScorers() {
                 scorers.forEach { (playerName, goals) ->
                     findPlayerIdByNameInTeams(listOf(match.team1!!.id!!, match.team2!!.id!!), playerName) { playerId ->
@@ -298,6 +293,7 @@ class MatchAdapter(
                                         for(i in 0 until goals){ // gestione goal > 1
                                             scorersTeam1.add(playerName)
                                         }
+                                        Log.d("player goals","player:${playerId}, goals: ${goals}")
                                         updatePlayerStats(teamRef1, playerId, goals, 0, 0, object : UpdateCallback {
                                             override fun onUpdateComplete() {
                                                 onOperationComplete()
@@ -324,7 +320,6 @@ class MatchAdapter(
                     }
                 }
             }
-
             // Aggiorna le performance per ogni giocatore con cartellini gialli
             fun updateYellowCards() {
                 yellowCardPlayers.forEach { (playerName, yellowCards) ->
@@ -362,7 +357,7 @@ class MatchAdapter(
                     }
                 }
             }
-                // Aggiorna le performance per ogni giocatore con cartellini rossi
+            // Aggiorna le performance per ogni giocatore con cartellini rossi
             fun updateRedCards() {
                 redCardPlayers.forEach { (playerName, redCards) ->
                     findPlayerIdByNameInTeams(
