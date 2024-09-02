@@ -164,6 +164,7 @@ class MyLeagueFragment : Fragment() {
         val addressTextView: TextView = dialog.findViewById(R.id.edt_more_address)
         val playingPeriodTextView: TextView = dialog.findViewById(R.id.edt_more_playing_period)
         val entryFeeTextView: TextView = dialog.findViewById(R.id.edt_more_euro)
+        val firstPrizeTextView: TextView = dialog.findViewById(R.id.edt_first_prize)
         val restrictionsTextView: TextView = dialog.findViewById(R.id.edt_more_info)
         val closeButton: ImageView = dialog.findViewById(R.id.btn_close)
 
@@ -171,7 +172,8 @@ class MyLeagueFragment : Fragment() {
         leagueNameTextView.text = league.name
         addressTextView.text = league.address
         playingPeriodTextView.text = league.playingPeriod
-        entryFeeTextView.text = league.entryfee
+        entryFeeTextView.text = "${league.entryfee}€ for registration"
+        firstPrizeTextView.text = "${league.prize}€ for first prize"
         restrictionsTextView.text = league.restrictions
 
         // chiusura del dialog

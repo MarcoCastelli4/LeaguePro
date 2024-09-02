@@ -150,8 +150,6 @@
                 android:text="League restrictions"
                 android:layout_centerVertical="true" />
 
-
-
         </RelativeLayout>
 
     <Button
