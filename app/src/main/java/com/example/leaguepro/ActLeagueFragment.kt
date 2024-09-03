@@ -104,6 +104,16 @@ class ActLeagueFragment : Fragment() {
                     true
                 }
                 R.id.statistics -> {
+                    leagueId?.let { id ->
+                        val fragment = StatisticsFragment().apply{
+                            arguments = Bundle().apply {
+                                putString("league_id", id)
+                            }
+                        }
+                        NavigationManager.replaceFragment(this,fragment)
+                    } ?: run {
+                        Toast.makeText(requireContext(), "League ID not available", Toast.LENGTH_LONG).show()
+                    }
                     NavigationManager.showIndicator(binding, item)
                     true
                 }
