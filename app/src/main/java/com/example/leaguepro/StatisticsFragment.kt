@@ -1,5 +1,6 @@
 package com.example.leaguepro
 
+import android.annotation.SuppressLint
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.Gravity
@@ -9,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -111,7 +113,9 @@ class StatisticsFragment: Fragment() {
     }
 
 
+    @SuppressLint("Range")
     private fun populateTable(stats: List<Pair<String, Int>>, layout: TableLayout, headers: List<String>) {
+        if (!isAdded) return  // Verifica che il fragment sia aggiunto
         layout.removeAllViews()  // Rimuove tutte le visualizzazioni esistenti nel TableLayout
 
         // Aggiungi l'intestazione solo se la tabella è vuota
@@ -120,6 +124,19 @@ class StatisticsFragment: Fragment() {
         }
 
         for (stat in stats) {
+            //linea divisoria tra ogni riga
+            val divider = View(context).apply {
+                layoutParams = TableRow.LayoutParams(
+                    TableRow.LayoutParams.MATCH_PARENT,
+                    1 // spessore linea
+                ).apply {
+                    setMargins(0, 20, 0, 20) // Margini per lo spazio tra le righe
+                }
+                setBackgroundResource(R.drawable.divider_line) // Usa il drawable creato
+            }
+
+            layout.addView(divider)
+
             val row = TableRow(context)
 
             val playerName = TextView(context).apply {

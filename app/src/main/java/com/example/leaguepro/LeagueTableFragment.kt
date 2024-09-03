@@ -97,7 +97,7 @@ class LeagueTableFragment : Fragment() {
     }
 
     private fun addTableHeader() {
-        val context = requireContext()
+        val context = context ?: return
         val headerRow = TableRow(context)
 
         val headers = listOf("Team", "PT", "V", "N", "P", "GF", "GS")
@@ -131,6 +131,18 @@ class LeagueTableFragment : Fragment() {
     }
     private fun updateLeagueTable(team: Team, tournamentStats: TournamentStats) {
         val context = requireContext()
+        // Crea la linea divisoria
+        val divider = View(context).apply {
+            layoutParams = TableRow.LayoutParams(
+                TableRow.LayoutParams.MATCH_PARENT,
+                1 // Spessore della linea
+            ).apply {
+                setMargins(0, 8, 0, 8) // Margini sopra e sotto la linea divisoria
+            }
+            setBackgroundResource(R.drawable.divider_line) // Usa il drawable creato
+        }
+        // Aggiungi la linea divisoria sopra la riga
+        leagueTableLayout.addView(divider)
         val row = TableRow(context)
 
         val values = listOf(

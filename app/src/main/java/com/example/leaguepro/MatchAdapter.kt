@@ -16,6 +16,7 @@ import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -30,7 +31,8 @@ class MatchAdapter(
     private val matchList: List<Match>,
     private val leagueOwnerId: String,
     private val leagueId: String,
-    private val mDbRef: DatabaseReference
+    private val mDbRef: DatabaseReference,
+    private val context: Context
 ) : RecyclerView.Adapter<MatchAdapter.MatchViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MatchViewHolder {
@@ -47,6 +49,15 @@ class MatchAdapter(
         holder.tvTeam2.text = match.team2?.name
         holder.tvTeam2Score.text = match.result2?.toString()
         holder.tvStatus.visibility = if (match.result1 != null && match.result2 != null) View.VISIBLE else View.GONE
+
+        holder.itemView.setOnClickListener {
+            if (match.result1 != null && match.result2 != null) {
+                showMatchDetails(match.id!!, leagueId)
+            } else {
+                Toast.makeText(holder.itemView.context, "Match results are not yet available.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         if (userId == leagueOwnerId) {
             holder.btnEdit.visibility = View.VISIBLE
@@ -56,6 +67,14 @@ class MatchAdapter(
         } else {
             holder.btnEdit.visibility = View.GONE
         }
+    }
+
+    private fun showMatchDetails(matchId: String, leagueId: String) {
+        val fragment = MatchDetailsFragment.newInstance(matchId, leagueId)
+        (context as AppCompatActivity).supportFragmentManager.beginTransaction()
+            .replace(R.id.frame_layout_info, fragment) // Assicurati che il container del fragment sia corretto
+            .addToBackStack(null)
+            .commit()
     }
     //mostra dialogo per modificare risultato match, marcatori e cartellini
     private fun showEditDialog(context: Context, match: Match) {
@@ -172,22 +191,36 @@ class MatchAdapter(
             val scorersTeam1 = mutableListOf<String>()
             val scorersTeam2 = mutableListOf<String>()
 
+            // Raccolta dei marcatori del team 1
+            val team1ScorersCount = llTeam1Scorers.childCount
+            var validTeam1ScorersCount = 0
             for (i in 0 until llTeam1Scorers.childCount) {
                 val row = llTeam1Scorers.getChildAt(i)
                 val scorerTextView = row.findViewById<TextView>(R.id.scorer_text)
                 val scorerName = scorerTextView.text.toString()
-                if (scorerName.isNotEmpty()) {
+                if (scorerName.isNotEmpty()&& scorerName!="Select player") {
                     scorers[scorerName] = scorers.getOrDefault(scorerName, 0) + 1
+                    validTeam1ScorersCount++
                 }
             }
-            // Raccogliere i giocatori del team 2 che hanno segnato
+            // Raccolta dei marcatori del team 2
+            val team2ScorersCount = llTeam2Scorers.childCount
+            var validTeam2ScorersCount = 0
             for (i in 0 until llTeam2Scorers.childCount) {
                 val row = llTeam2Scorers.getChildAt(i)
                 val scorerTextView = row.findViewById<TextView>(R.id.scorer_text)
                 val scorerName = scorerTextView.text.toString()
-                if (scorerName.isNotEmpty()) {
+                Log.d("llteam2","${llTeam2Scorers.childCount}")
+                if (scorerName.isNotEmpty() && scorerName!="Select player") {
                     scorers[scorerName] = scorers.getOrDefault(scorerName, 0) + 1
+                    validTeam2ScorersCount++
                 }
+            }
+
+            // Verifica che tutti i marcatori siano stati selezionati
+            if (validTeam1ScorersCount != team1ScorersCount || validTeam2ScorersCount != team2ScorersCount) {
+                Toast.makeText(context, "All scorer fields must be filled!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener // Interrompi l'esecuzione del salvataggio
             }
             // Raccogliere i giocatori con cartellini gialli
             for (i in 0 until llYellowCards.childCount) {
@@ -411,6 +444,7 @@ class MatchAdapter(
     }
 
 
+    // carica le statistiche del match già modificato
     private fun loadPreviousMatchDetails(match: Match, callback: (List<String>, List<String>, List<String>, List<String>) -> Unit) {
         val matchRef = FirebaseDatabase.getInstance().getReference("matches").child(leagueId).child(match.id!!)
         matchRef.addListenerForSingleValueEvent(object : ValueEventListener {

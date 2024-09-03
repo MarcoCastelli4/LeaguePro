@@ -87,7 +87,7 @@ class AllMatchFragment : Fragment() {
     }
     private fun setupRecyclerView() {
         val leagueId = arguments?.getString(LEAGUE_ID_KEY) ?: return
-        matchAdapter = MatchAdapter(matchList, leagueOwnerId, leagueId,mDbRef)
+        matchAdapter = MatchAdapter(matchList, leagueOwnerId, leagueId,mDbRef,requireContext())
         recyclerView.adapter = matchAdapter
     }
     private fun updateVisibilityCreateCalendar() {
