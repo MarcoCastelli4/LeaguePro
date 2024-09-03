@@ -5,7 +5,6 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.leaguepro.databinding.CardCommunicationsBinding
 
-
 class CommunicationAdapter(private val communications: List<Communication>) :
     RecyclerView.Adapter<CommunicationAdapter.CommunicationViewHolder>() {
 
