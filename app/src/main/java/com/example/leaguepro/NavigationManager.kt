@@ -27,18 +27,21 @@ object NavigationManager {
     fun showIndicator(activity: AppCompatActivity, binding: ActivityMainBinding, item: MenuItem) {
         // Ottieni la View associata all'elemento di menu selezionato
         val itemView = binding.bottomNavigationView.findViewById<View>(item.itemId)
-        itemView.post {
-            // Calcola la larghezza e la posizione della View dell'elemento di menu selezionato
-            val width = itemView.width
-            val x = itemView.left
+        binding.bottomNavigationView.post {
+            itemView.post {
+                // Calcola la larghezza e la posizione della View dell'elemento di menu selezionato
+                val width = itemView.width
+                val x = itemView.left
 
-            // Aggiorna la larghezza e la posizione della barra di selezione
-            binding.selectionIndicator.layoutParams.width = width
-            binding.selectionIndicator.x = x.toFloat()
-            binding.selectionIndicator.visibility = View.VISIBLE
-            binding.selectionIndicator.requestLayout()
+                // Aggiorna la larghezza e la posizione della barra di selezione
+                binding.selectionIndicator.layoutParams.width = width
+                binding.selectionIndicator.x = x.toFloat()
+                binding.selectionIndicator.visibility = View.VISIBLE
+                binding.selectionIndicator.requestLayout()
+            }
         }
     }
+
     fun showIndicator(binding: InfoLeagueBinding, item: MenuItem) {
         // Ottieni la View associata all'elemento di menu selezionato
         val itemView = binding.upperNavigationView.findViewById<View>(item.itemId)

@@ -134,7 +134,12 @@ class ActLeagueFragment : Fragment() {
             }
         }
         binding.upperNavigationView.selectedItemId = R.id.match
-
+        binding.upperNavigationView.post {
+            val selectedItem = binding.upperNavigationView.menu.findItem(R.id.match)
+            if (selectedItem != null) {
+                NavigationManager.showIndicator(binding, selectedItem)
+            }
+        }
         return view
     }
 
