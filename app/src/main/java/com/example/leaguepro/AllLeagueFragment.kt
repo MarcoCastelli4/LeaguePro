@@ -16,6 +16,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.RelativeLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -23,7 +24,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -47,6 +47,7 @@ class AllLeagueFragment : Fragment() {
     private lateinit var mAuth: FirebaseAuth
     private lateinit var searchView: EditText
     private lateinit var osmMapView: MapView
+    private lateinit var searchBar: RelativeLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -143,6 +144,7 @@ class AllLeagueFragment : Fragment() {
         // Configurazione OSM
         Configuration.getInstance().load(context, PreferenceManager.getDefaultSharedPreferences(context))
 
+        searchBar = view.findViewById(R.id.search_bar_layout)
         osmMapView = view.findViewById(R.id.osmMapView)
         osmMapView.setTileSource(TileSourceFactory.MAPNIK)
         osmMapView.setMultiTouchControls(true)
@@ -154,6 +156,7 @@ class AllLeagueFragment : Fragment() {
         // Listener per il click sull'icona della mappa
         val mapIcon = view.findViewById<ImageView>(R.id.map_icon)
         mapIcon.setOnClickListener {
+            searchBar.visibility = View.GONE
             osmMapView.visibility = View.VISIBLE
         }
     }

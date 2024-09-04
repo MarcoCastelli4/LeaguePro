@@ -54,6 +54,13 @@ class ChatActivity : AppCompatActivity() {
                 sendMessage()
             }
             listenForMessages()
+            // Trova il pulsante di ritorno e aggiungi il listener
+            val backButton: ImageButton = findViewById(R.id.back_button)
+            backButton.setOnClickListener {
+                // Chiudi l'attività o torna indietro
+                onBackPressed()
+            }
+
         }
     }
     private fun sendMessage() {

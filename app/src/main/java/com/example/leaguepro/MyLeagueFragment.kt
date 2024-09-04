@@ -60,6 +60,7 @@ class MyLeagueFragment : Fragment() {
     private lateinit var edtleague_MaxTeamNumber:Spinner
     private lateinit var searchView: EditText
     private lateinit var osmMapView: MapView
+    private lateinit var searchBar: RelativeLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -187,7 +188,7 @@ class MyLeagueFragment : Fragment() {
     private fun loadMap(view: View){
         // Configurazione OSM
         Configuration.getInstance().load(context, PreferenceManager.getDefaultSharedPreferences(context))
-
+        searchBar = view.findViewById(R.id.search_bar_layout)
         osmMapView = view.findViewById(R.id.osmMapView)
         osmMapView.setTileSource(TileSourceFactory.MAPNIK)
         osmMapView.setMultiTouchControls(true)
@@ -199,6 +200,7 @@ class MyLeagueFragment : Fragment() {
         // Listener per il click sull'icona della mappa
         val mapIcon = view.findViewById<ImageView>(R.id.map_icon)
         mapIcon.setOnClickListener {
+            searchBar.visibility=View.GONE
             osmMapView.visibility = View.VISIBLE
             val addLeagueContainer: ConstraintLayout = view.findViewById(R.id.add_league_container)
             addLeagueContainer.visibility = View.GONE

@@ -547,8 +547,11 @@ class LeagueAdapter(
         })
     }
 
-    fun setData(newLeagueList: ArrayList<League>) {
-        leagueList = newLeagueList
+    fun setData(newLeagueList: List<League>) {
+        leagueList.clear()
+        leagueList.addAll(newLeagueList)
         notifyDataSetChanged()
     }
+
+
 }
