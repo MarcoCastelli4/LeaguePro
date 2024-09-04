@@ -20,7 +20,6 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var buttonSend: ImageButton
     private lateinit var messagesAdapter: MessagesAdapter
     private lateinit var messagesList: MutableList<Message>
-
     private lateinit var leagueId: String
     private lateinit var mDbRef: DatabaseReference
     private lateinit var userId: String

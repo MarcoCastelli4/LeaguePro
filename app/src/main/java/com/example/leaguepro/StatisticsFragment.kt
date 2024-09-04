@@ -7,9 +7,11 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -51,11 +53,12 @@ class StatisticsFragment: Fragment() {
 
         teamsRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
-                val goalStats = mutableListOf<Pair<String, Int>>()
-                val yellowCardStats = mutableListOf<Pair<String, Int>>()
-                val redCardStats = mutableListOf<Pair<String, Int>>()
+                val goalStats = mutableListOf<Triple<String, String, Int>>()
+                val yellowCardStats = mutableListOf<Triple<String, String, Int>>()
+                val redCardStats = mutableListOf<Triple<String, String, Int>>()
 
                 for (teamSnapshot in dataSnapshot.children) {
+                    val teamName = teamSnapshot.child("name").getValue(String::class.java) ?: ""
                     for (playerSnapshot in teamSnapshot.child("players").children) {
                         val tournamentSnapshot = playerSnapshot.child("tournaments").child(leagueUid!!)
                         if (tournamentSnapshot.exists()) {
@@ -64,22 +67,22 @@ class StatisticsFragment: Fragment() {
                             val yellowCards = tournamentSnapshot.child("yellowCards").getValue(Int::class.java) ?: 0
                             val redCards = tournamentSnapshot.child("redCards").getValue(Int::class.java) ?: 0
                             if(goals > 0) {
-                                goalStats.add(Pair(playerName, goals))
+                                goalStats.add(Triple(playerName, teamName, goals))
                             }
                             if(yellowCards > 0) {
-                                yellowCardStats.add(Pair(playerName, yellowCards))
+                                yellowCardStats.add(Triple(playerName, teamName, yellowCards))
                             }
                             if(redCards > 0) {
-                                redCardStats.add(Pair(playerName, redCards))
+                                redCardStats.add(Triple(playerName, teamName, redCards))
                             }
                         }
                     }
                 }
 
                 // Ordina le statistiche in base ai valori
-                goalStats.sortByDescending { it.second }
-                yellowCardStats.sortByDescending { it.second }
-                redCardStats.sortByDescending { it.second }
+                goalStats.sortByDescending { it.third }
+                yellowCardStats.sortByDescending { it.third }
+                redCardStats.sortByDescending { it.third }
 
                 // Popola le tabelle
                 var headers: List<String>
@@ -113,7 +116,7 @@ class StatisticsFragment: Fragment() {
 
 
     @SuppressLint("Range")
-    private fun populateTable(stats: List<Pair<String, Int>>, layout: TableLayout, headers: List<String>) {
+    private fun populateTable(stats: List<Triple<String, String, Int>>, layout: TableLayout, headers: List<String>) {
         if (!isAdded) return  // Verifica che il fragment sia aggiunto
         layout.removeAllViews()  // Rimuove tutte le visualizzazioni esistenti nel TableLayout
 
@@ -137,19 +140,34 @@ class StatisticsFragment: Fragment() {
             layout.addView(divider)
 
             val row = TableRow(context)
-
-            val playerName = TextView(context).apply {
-                text = stat.first
+            // Layout verticale per contenere il nome del giocatore e del team
+            val playerNameLayout = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
                 layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 2.5f)
             }
 
+            val playerName = TextView(context).apply {
+                text = stat.first
+                setTypeface(null, Typeface.BOLD)
+                textSize = 16f // Font size for player name
+            }
+            // TextView per il nome della squadra
+            val teamName = TextView(context).apply {
+                text = stat.second
+                textSize = 12f // Font size smaller for team name
+                setTextColor(ContextCompat.getColor(context, R.color.gray)) // Colore più chiaro per il nome della squadra
+            }
+            playerNameLayout.addView(playerName)
+            playerNameLayout.addView(teamName)
+
             val value = TextView(context).apply {
-                text = stat.second.toString()
+                text = stat.third.toString()
                 layoutParams = TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 0.7f)
                 gravity = Gravity.END
+                setTypeface(null, Typeface.BOLD)
             }
 
-            row.addView(playerName)
+            row.addView(playerNameLayout)
             row.addView(value)
 
             layout.addView(row)

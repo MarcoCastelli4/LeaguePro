@@ -45,7 +45,6 @@ class ActLeagueFragment : Fragment() {
             val args = Bundle().apply {
                 putString("league_id", league.uid) // Assuming uid is a String; adjust accordingly
                 putString("league_name", league.name) // Assuming league.name is available
-                // Add other data you need to pass to the fragment
             }
             fragment.arguments = args
             return fragment
