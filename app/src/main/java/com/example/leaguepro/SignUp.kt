@@ -112,13 +112,21 @@ class SignUp : AppCompatActivity() {
             valid = false
         }
 
+        val emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+"
         if (email.isEmpty()) {
             edtEmail.error = "Please enter your email"
             valid = false
+        } else if (!email.matches(emailPattern.toRegex())) {
+            edtEmail.error = "Please enter a valid email address"
+            valid = false
         }
+
 
         if (password.isEmpty()) {
             edtPassword.error = "Please enter your password"
+            valid = false
+        }  else if (password.length<6) {
+            edtPassword.error = "Please enter at least 6 characters"
             valid = false
         }
 

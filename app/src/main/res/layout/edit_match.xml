@@ -80,7 +80,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Team 1 Scorers"
-            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textSize="16sp"
             android:layout_marginTop="16dp" />
 
         <LinearLayout
@@ -94,7 +95,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Team 2 Scorers"
-            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textSize="16sp"
             android:layout_marginTop="16dp" />
 
         <LinearLayout
@@ -115,14 +117,15 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Yellow Cards"
-                android:textSize="16sp"
-                android:textColor="@color/black" />
+                android:textStyle="bold"
+                android:textSize="16sp" />
 
             <Button
                 android:id="@+id/btn_add_yellow_card"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Add Yellow Card"
+                android:backgroundTint="@color/primary"
                 android:layout_marginTop="8dp"/>
 
             <LinearLayout
@@ -145,14 +148,15 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Red Cards"
-                android:textSize="16sp"
-                android:textColor="@color/black" />
+                android:textStyle="bold"
+                android:textSize="16sp"/>
 
             <Button
                 android:id="@+id/btn_add_red_card"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Add Red Card"
+                android:backgroundTint="@color/primary"
                 android:layout_marginTop="8dp"/>
 
             <LinearLayout

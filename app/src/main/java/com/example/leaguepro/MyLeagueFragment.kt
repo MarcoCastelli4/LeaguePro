@@ -61,6 +61,8 @@ class MyLeagueFragment : Fragment() {
     private lateinit var searchView: EditText
     private lateinit var osmMapView: MapView
     private lateinit var searchBar: RelativeLayout
+    private lateinit var mapsBar: LinearLayout
+    private lateinit var backButton: ImageButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -188,6 +190,8 @@ class MyLeagueFragment : Fragment() {
     private fun loadMap(view: View){
         // Configurazione OSM
         Configuration.getInstance().load(context, PreferenceManager.getDefaultSharedPreferences(context))
+        mapsBar = view.findViewById(R.id.maps_bar)
+        backButton = view.findViewById(R.id.back_button)
         searchBar = view.findViewById(R.id.search_bar_layout)
         osmMapView = view.findViewById(R.id.osmMapView)
         osmMapView.setTileSource(TileSourceFactory.MAPNIK)
@@ -201,9 +205,16 @@ class MyLeagueFragment : Fragment() {
         val mapIcon = view.findViewById<ImageView>(R.id.map_icon)
         mapIcon.setOnClickListener {
             searchBar.visibility=View.GONE
+            mapsBar.visibility = View.VISIBLE
             osmMapView.visibility = View.VISIBLE
             val addLeagueContainer: ConstraintLayout = view.findViewById(R.id.add_league_container)
             addLeagueContainer.visibility = View.GONE
+        }
+        // Listener per il click sul pulsante "indietro"
+        backButton.setOnClickListener {
+            searchBar.visibility = View.VISIBLE
+            mapsBar.visibility = View.GONE
+            osmMapView.visibility = View.GONE
         }
     }
     private fun setupLeagueRecyclerView(view: View) {

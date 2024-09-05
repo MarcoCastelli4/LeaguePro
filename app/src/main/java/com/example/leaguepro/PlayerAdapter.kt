@@ -47,7 +47,7 @@ class PlayerAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PlayerViewHolder {
         val view: View = LayoutInflater.from(context).inflate(R.layout.card_player_layout, parent, false)
-        return PlayerAdapter.PlayerViewHolder(view)
+        return PlayerViewHolder(view)
     }
 
     override fun getItemCount(): Int {

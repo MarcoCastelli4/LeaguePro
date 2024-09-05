@@ -1,6 +1,6 @@
 package com.example.leaguepro;
 
-import android.content.Context
+import android.annotation.SuppressLint
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -60,6 +60,17 @@ class Login : AppCompatActivity() {
         btnLogin.setOnClickListener {
             val email = edtEmail.text.toString()
             val password = edtPassword.text.toString()
+            if (email.isEmpty()) {
+                edtEmail.error = "Email is required"
+                edtEmail.requestFocus()
+                return@setOnClickListener
+            }
+
+            if (password.isEmpty()) {
+                edtPassword.error = "Password is required"
+                edtPassword.requestFocus()
+                return@setOnClickListener
+            }
 
             login(email, password)
         }
@@ -67,6 +78,7 @@ class Login : AppCompatActivity() {
         setupPasswordToggle(edtPassword, edtPswButton)
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private fun setupPasswordToggle(editText: EditText, eyeButton: ImageView) {
         eyeButton.setOnTouchListener { _, event ->
             when (event.action) {
@@ -118,7 +130,7 @@ class Login : AppCompatActivity() {
                             }
                     }
                 } else {
-                    Toast.makeText(this@Login, "User does not exist", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@Login, "Invalid email or password", Toast.LENGTH_SHORT).show()
                 }
             }
     }
@@ -136,14 +148,11 @@ class Login : AppCompatActivity() {
                             }
                         }
                     }
-
                 }
-
                 override fun onCancelled(error: DatabaseError) {
                     TODO("Not yet implemented")
                 }
             })
-
     }
 }
 

@@ -15,7 +15,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -48,6 +50,8 @@ class AllLeagueFragment : Fragment() {
     private lateinit var searchView: EditText
     private lateinit var osmMapView: MapView
     private lateinit var searchBar: RelativeLayout
+    private lateinit var mapsBar: LinearLayout
+    private lateinit var backButton: ImageButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -144,6 +148,8 @@ class AllLeagueFragment : Fragment() {
         // Configurazione OSM
         Configuration.getInstance().load(context, PreferenceManager.getDefaultSharedPreferences(context))
 
+        mapsBar = view.findViewById(R.id.maps_bar)
+        backButton = view.findViewById(R.id.back_button)
         searchBar = view.findViewById(R.id.search_bar_layout)
         osmMapView = view.findViewById(R.id.osmMapView)
         osmMapView.setTileSource(TileSourceFactory.MAPNIK)
@@ -157,7 +163,14 @@ class AllLeagueFragment : Fragment() {
         val mapIcon = view.findViewById<ImageView>(R.id.map_icon)
         mapIcon.setOnClickListener {
             searchBar.visibility = View.GONE
+            mapsBar.visibility = View.VISIBLE
             osmMapView.visibility = View.VISIBLE
+        }
+        // Listener per il click sul pulsante "indietro"
+        backButton.setOnClickListener {
+            searchBar.visibility = View.VISIBLE
+            mapsBar.visibility = View.GONE
+            osmMapView.visibility = View.GONE
         }
     }
     private fun addMarkers(leagueList: ArrayList<League>) {

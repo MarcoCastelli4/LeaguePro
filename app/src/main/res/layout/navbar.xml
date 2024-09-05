@@ -5,6 +5,34 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="10dp">
+    <!-- Barra blu orizzontale inizialmente nascosta -->
+    <LinearLayout
+        android:id="@+id/maps_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="start"
+        android:background="#246EE9"
+        android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/back_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start"
+            android:background="?attr/selectableItemBackground"
+            android:padding="10dp"
+            android:src="@drawable/back"
+            android:textSize="18sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="League Maps"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="10dp"/>
+    </LinearLayout>
 
     <!-- RelativeLayout for the search bar and map icon -->
     <RelativeLayout
