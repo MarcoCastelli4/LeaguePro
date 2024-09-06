@@ -129,14 +129,46 @@ class MyTeamFragment : Fragment() {
             } else {
                 edtteam_name.text = newName
                 val currentTeamId = UserInfo.team_id
-                addOrUpdateTeamToDatabase(newName, mAuth.currentUser?.uid, currentTeamId) { teamId ->
-                    UserInfo.team_id = teamId
-                    toggleVisibility()
+
+                if (currentTeamId.isNullOrEmpty() || edtteam_name.text == "Click to create Team") {
+                    // Crea un nuovo team se non esiste
+                    createNewTeamInDatabase(newName, mAuth.currentUser?.uid) { teamId ->
+                        UserInfo.team_id = teamId
+                        toggleVisibility()
+                    }
+                } else {
+                    // Aggiorna il team esistente
+                    addOrUpdateTeamToDatabase(newName, mAuth.currentUser?.uid, currentTeamId) { teamId ->
+                        UserInfo.team_id = teamId
+                        toggleVisibility()
+                    }
                 }
                 dialog.dismiss()
             }
         }
     }
+
+    private fun createNewTeamInDatabase(name: String, managerId: String?, callback: (String) -> Unit) {
+        val teamId = mDbRef.child("teams").push().key // Genera un nuovo team ID
+        if (teamId != null) {
+            val newTeam = Team(
+                id = teamId,
+                name = name,
+                team_manager = managerId,
+                players = mapOf(),  // Inizialmente senza giocatori
+                tournaments = mapOf()  // Inizialmente senza tornei
+            )
+
+            mDbRef.child("teams").child(teamId).setValue(newTeam)
+                .addOnSuccessListener {
+                    callback(teamId)
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(context, "Failed to create team: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+        }
+    }
+
 
 
     private fun showConfirmationDialog(teamId: String) {
@@ -316,27 +348,18 @@ class MyTeamFragment : Fragment() {
 
     private fun addOrUpdateTeamToDatabase(name: String, managerId: String?, teamId: String?, callback: (String) -> Unit) {
         if (teamId != null) {
-            // Recupera il team esistente
-            mDbRef.child("teams").child(teamId).get().addOnSuccessListener { snapshot ->
-                if (snapshot.exists()) {
-                    // Crea un nuovo oggetto Team basato sui dati esistenti, ma con il nome aggiornato
-                    val existingTeam = snapshot.getValue(Team::class.java)
-                    val updatedTeam = existingTeam?.copy(name = name)
+            // Aggiorna solo il nome del team nel database
+            val updates = mapOf<String, Any>(
+                "name" to name
+            )
 
-                    // Aggiorna il team nel database
-                    mDbRef.child("teams").child(teamId).setValue(updatedTeam)
-                        .addOnSuccessListener {
-                            callback(teamId)
-                        }
-                        .addOnFailureListener { e ->
-                            Toast.makeText(context, "Failed to update team: ${e.message}", Toast.LENGTH_SHORT).show()
-                        }
-                } else {
-                    Toast.makeText(context, "Team not found", Toast.LENGTH_SHORT).show()
+            mDbRef.child("teams").child(teamId).updateChildren(updates)
+                .addOnSuccessListener {
+                    callback(teamId)
                 }
-            }.addOnFailureListener { e ->
-                Toast.makeText(context, "Failed to retrieve team: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
+                .addOnFailureListener { e ->
+                    Toast.makeText(context, "Failed to update team name: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
         }
     }
 

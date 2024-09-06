@@ -195,6 +195,7 @@ class StatisticsFragment: Fragment() {
     }
 
     private fun addNoDataRow(layout: TableLayout) {
+        if (!isAdded) return
         val context = requireContext()
         val noDataRow = TableRow(context)
         val noDataTextView = TextView(context).apply {
