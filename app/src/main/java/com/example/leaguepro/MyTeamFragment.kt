@@ -128,7 +128,8 @@ class MyTeamFragment : Fragment() {
                 editText.error = "Team name cannot be empty"
             } else {
                 edtteam_name.text = newName
-                addOrUpdateTeamToDatabase(newName, mAuth.currentUser?.uid) { teamId ->
+                val currentTeamId = UserInfo.team_id
+                addOrUpdateTeamToDatabase(newName, mAuth.currentUser?.uid, currentTeamId) { teamId ->
                     UserInfo.team_id = teamId
                     toggleVisibility()
                 }
@@ -136,6 +137,7 @@ class MyTeamFragment : Fragment() {
             }
         }
     }
+
 
     private fun showConfirmationDialog(teamId: String) {
         val builder = AlertDialog.Builder(context, R.style.CustomAlertDialog)
@@ -312,25 +314,32 @@ class MyTeamFragment : Fragment() {
         }
     }
 
-    private fun addOrUpdateTeamToDatabase(name: String, managerId: String?, callback: (String) -> Unit) {
-        val teamId = mDbRef.child("teams").push().key
+    private fun addOrUpdateTeamToDatabase(name: String, managerId: String?, teamId: String?, callback: (String) -> Unit) {
         if (teamId != null) {
-            val team = Team(
-                id = teamId,
-                name = name,
-                team_manager = managerId,
-                players = mapOf(),
-                tournaments = mapOf()
-            )
-            mDbRef.child("teams").child(teamId).setValue(team)
-                .addOnSuccessListener {
-                    callback(teamId)
+            // Recupera il team esistente
+            mDbRef.child("teams").child(teamId).get().addOnSuccessListener { snapshot ->
+                if (snapshot.exists()) {
+                    // Crea un nuovo oggetto Team basato sui dati esistenti, ma con il nome aggiornato
+                    val existingTeam = snapshot.getValue(Team::class.java)
+                    val updatedTeam = existingTeam?.copy(name = name)
+
+                    // Aggiorna il team nel database
+                    mDbRef.child("teams").child(teamId).setValue(updatedTeam)
+                        .addOnSuccessListener {
+                            callback(teamId)
+                        }
+                        .addOnFailureListener { e ->
+                            Toast.makeText(context, "Failed to update team: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                } else {
+                    Toast.makeText(context, "Team not found", Toast.LENGTH_SHORT).show()
                 }
-                .addOnFailureListener { e ->
-                    Toast.makeText(context, "Failed to add/update team: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
+            }.addOnFailureListener { e ->
+                Toast.makeText(context, "Failed to retrieve team: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
         }
     }
+
 
     private fun removeTeamFromDatabase(teamId: String, onSuccess: (String) -> Unit) {
         mDbRef.child("teams").child(teamId).removeValue()
