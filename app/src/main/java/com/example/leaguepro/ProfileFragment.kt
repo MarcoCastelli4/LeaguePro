@@ -284,8 +284,34 @@ class ProfileFragment : Fragment() {
                         CoroutineScope(Dispatchers.Main).launch {
                             val hasTeam = withContext(Dispatchers.IO) { hasTeam(currentUser.uid) }
                             val hasLeagues = withContext(Dispatchers.IO) { hasLeagues(currentUser.uid) }
-
-                            if ((UserInfo.userType==getString(R.string.TeamManager) && !hasTeam) || (UserInfo.userType==getString(R.string.LeagueManager)&& !hasLeagues)) {
+                            if(UserInfo.userType == newUserType) {
+                                currentUser.updateEmail(newEmail)
+                                    .addOnCompleteListener { updateEmailTask ->
+                                        if (updateEmailTask.isSuccessful) {
+                                            val userUpdates = mapOf(
+                                                "userType" to newUserType,
+                                                "fullname" to newName,
+                                                "email" to newEmail
+                                            )
+                                            mDbRef.child("users").child(currentUser.uid)
+                                                .updateChildren(userUpdates)
+                                                .addOnCompleteListener { updateDbTask ->
+                                                    if (updateDbTask.isSuccessful) {
+                                                        fullname.text = newName
+                                                        email.text = newEmail
+                                                        UserInfo.userType = newUserType
+                                                        toggleEditMode(false)
+                                                    } else {
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Failed to update profile: ${updateDbTask.exception?.message}",
+                                                            Toast.LENGTH_LONG
+                                                        ).show()
+                                                    }
+                                                }
+                                        }
+                                    }
+                            }else if ((UserInfo.userType==getString(R.string.TeamManager) && !hasTeam ) || (UserInfo.userType==getString(R.string.LeagueManager)&& !hasLeagues)) {
                                 currentUser.updateEmail(newEmail)
                                     .addOnCompleteListener { updateEmailTask ->
                                         if (updateEmailTask.isSuccessful) {
