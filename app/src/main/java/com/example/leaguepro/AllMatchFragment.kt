@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
@@ -34,6 +35,7 @@ class AllMatchFragment : Fragment() {
     private val matchList = mutableListOf<Match>()
     private lateinit var leagueOwnerId: String
     private lateinit var addCalendarContainer: ConstraintLayout
+    private lateinit var addCalendar: ImageView
     private lateinit var calendar: List<Match>
     private lateinit var mDbRef: DatabaseReference
 
@@ -55,6 +57,7 @@ class AllMatchFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_all_match, container, false)
         recyclerView = view.findViewById(R.id.matchRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(context)
+        addCalendar = view.findViewById(R.id.add_calendar)
         addCalendarContainer = view.findViewById(R.id.addCalendarContainer)
         return view
     }
@@ -64,7 +67,7 @@ class AllMatchFragment : Fragment() {
         mDbRef = FirebaseDatabase.getInstance().reference
         val leagueId = arguments?.getString(LEAGUE_ID_KEY) ?: return
         loadLeagueOwnerId(leagueId)
-        addCalendarContainer.setOnClickListener {    //click listener per create calendar
+        addCalendar.setOnClickListener {    //click listener per create calendar
             checkIfCalendarExists(leagueId)
         }
     }
