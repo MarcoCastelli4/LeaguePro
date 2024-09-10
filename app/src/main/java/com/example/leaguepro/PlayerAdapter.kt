@@ -26,9 +26,11 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.ValueEventListener
+import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 class PlayerAdapter(
     val context: Context,
@@ -170,7 +172,7 @@ class PlayerAdapter(
         }
 
         popupView.findViewById<ImageView>(R.id.btn_birthday).setOnClickListener {
-            datePickerDialog(edtPlayerBirthday)
+            datePickerDialog(edtPlayerBirthday, player.birthday)
         }
     }
 
@@ -233,24 +235,36 @@ class PlayerAdapter(
             player.uid?.let { dbRef.child("teams").child(teamId).child("players").child(it).setValue(player) }
         }
     }
-    private fun datePickerDialog(edtPlayingPeriod: TextView) {
-        val today = MaterialDatePicker.todayInUtcMilliseconds()
+    private fun datePickerDialog(edtPlayingPeriod: TextView, currentBirthday: String?) {
+        // Definisci il formato della data
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        dateFormat.timeZone = TimeZone.getDefault() // Imposta il fuso orario locale
+
+        // Se la data di nascita esiste, convertila in millisecondi
+        val defaultDateInMillis = currentBirthday?.let {
+            try {
+                dateFormat.parse(it)?.time ?: MaterialDatePicker.todayInUtcMilliseconds()
+            } catch (e: ParseException) {
+                MaterialDatePicker.todayInUtcMilliseconds()
+            }
+        } ?: MaterialDatePicker.todayInUtcMilliseconds()
+
         val constraintsBuilder = CalendarConstraints.Builder()
             .setValidator(DateValidatorPointBackward.now()) // Consenti solo date nel passato
 
-        val builder = MaterialDatePicker.Builder.datePicker() // Usa il DatePicker singolo per la data di nascita
+        val builder = MaterialDatePicker.Builder.datePicker()
             .setTitleText("Select birthday")
+            .setSelection(defaultDateInMillis) // Imposta la data di nascita corrente come selezione iniziale
             .setCalendarConstraints(constraintsBuilder.build())
-            .setTheme(R.style.CustomDatePicker) // Usa il tema personalizzato
+            .setTheme(R.style.CustomDatePicker)
 
         val datePicker = builder.build()
         datePicker.addOnPositiveButtonClickListener { selection ->
-            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH)
-            val selectedDateString = sdf.format(Date(selection ?: 0))
+            val selectedDateString = dateFormat.format(Date(selection ?: 0))
             edtPlayingPeriod.text = selectedDateString
         }
         datePicker.show((context as FragmentActivity).supportFragmentManager, "date_picker")
-
     }
+
 
 }

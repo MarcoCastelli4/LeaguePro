@@ -156,7 +156,7 @@ class AllLeagueFragment : Fragment() {
         osmMapView.setMultiTouchControls(true)
 
         // Centra la mappa su una posizione iniziale
-        osmMapView.controller.setZoom(15.0)
+        osmMapView.controller.setZoom(13.0)
         osmMapView.controller.setCenter(GeoPoint(45.539855914185615, 10.221154248320246))  // Centra su Brescia
 
         // Listener per il click sull'icona della mappa
